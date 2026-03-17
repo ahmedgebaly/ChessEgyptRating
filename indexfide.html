@@ -668,6 +668,7 @@ function openBonusPopup(uid) {
   repCheck.checked = !!d.republicParticipation;
 
   document.getElementById("bonus-modal-backdrop").classList.add("active");
+  updateBonusPreview();
 }
 
 function closeBonusPopup() {
@@ -699,6 +700,32 @@ function saveBonusFromPopup() {
   render();
 }
 
+function getModalBonusSelectionTotal() {
+  const getRadioValue = (name) => {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? Number(el.value) : 0;
+  };
+
+  const africa = getRadioValue("africa");
+  const arab = getRadioValue("arab");
+  const republicRank = getRadioValue("republicRank");
+  const title = getRadioValue("titleBonus");
+  const repParticipation = document.getElementById("bonus-rep-participation").checked ? 30 : 0;
+
+  return africa + arab + republicRank + title + repParticipation;
+}
+
+function updateBonusPreview() {
+  const el = document.getElementById("bonus-preview-value");
+  if (!el) return;
+  const total = getModalBonusSelectionTotal();
+  el.textContent = total;
+}
+
+function onBonusOptionChanged() {
+  updateBonusPreview();
+}
+
 function deletePlayer(uid) {
   players = players.filter(p => p.uid !== uid);
   render();
@@ -716,16 +743,16 @@ render();
       <div class="bonus-section-title">إفريقيا</div>
       <div class="bonus-options">
         <label class="bonus-option-label">
-          <input type="radio" name="africa" value="70"> أول (70)
+          <input type="radio" name="africa" value="70" onchange="onBonusOptionChanged()"> أول (70)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="africa" value="50"> ثاني (50)
+          <input type="radio" name="africa" value="50" onchange="onBonusOptionChanged()"> ثاني (50)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="africa" value="30"> ثالث (30)
+          <input type="radio" name="africa" value="30" onchange="onBonusOptionChanged()"> ثالث (30)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="africa" value="0" checked> بدون
+          <input type="radio" name="africa" value="0" checked onchange="onBonusOptionChanged()"> بدون
         </label>
       </div>
     </div>
@@ -734,16 +761,16 @@ render();
       <div class="bonus-section-title">العرب</div>
       <div class="bonus-options">
         <label class="bonus-option-label">
-          <input type="radio" name="arab" value="70"> أول (70)
+          <input type="radio" name="arab" value="70" onchange="onBonusOptionChanged()"> أول (70)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="arab" value="50"> ثاني (50)
+          <input type="radio" name="arab" value="50" onchange="onBonusOptionChanged()"> ثاني (50)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="arab" value="30"> ثالث (30)
+          <input type="radio" name="arab" value="30" onchange="onBonusOptionChanged()"> ثالث (30)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="arab" value="0" checked> بدون
+          <input type="radio" name="arab" value="0" checked onchange="onBonusOptionChanged()"> بدون
         </label>
       </div>
     </div>
@@ -752,16 +779,16 @@ render();
       <div class="bonus-section-title">الجمهورية (ترتيب)</div>
       <div class="bonus-options">
         <label class="bonus-option-label">
-          <input type="radio" name="republicRank" value="100"> أول (100)
+          <input type="radio" name="republicRank" value="100" onchange="onBonusOptionChanged()"> أول (100)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="republicRank" value="70"> ثاني (70)
+          <input type="radio" name="republicRank" value="70" onchange="onBonusOptionChanged()"> ثاني (70)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="republicRank" value="50"> ثالث (50)
+          <input type="radio" name="republicRank" value="50" onchange="onBonusOptionChanged()"> ثالث (50)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="republicRank" value="0" checked> بدون
+          <input type="radio" name="republicRank" value="0" checked onchange="onBonusOptionChanged()"> بدون
         </label>
       </div>
     </div>
@@ -770,16 +797,16 @@ render();
       <div class="bonus-section-title">الألقاب</div>
       <div class="bonus-options">
         <label class="bonus-option-label">
-          <input type="radio" name="titleBonus" value="40"> IM (40)
+          <input type="radio" name="titleBonus" value="40" onchange="onBonusOptionChanged()"> IM (40)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="titleBonus" value="20"> FM (20)
+          <input type="radio" name="titleBonus" value="20" onchange="onBonusOptionChanged()"> FM (20)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="titleBonus" value="10"> CM (10)
+          <input type="radio" name="titleBonus" value="10" onchange="onBonusOptionChanged()"> CM (10)
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="titleBonus" value="0" checked> بدون
+          <input type="radio" name="titleBonus" value="0" checked onchange="onBonusOptionChanged()"> بدون
         </label>
       </div>
     </div>
@@ -788,9 +815,13 @@ render();
       <div class="bonus-section-title">المشاركة في الجمهورية</div>
       <div class="bonus-options">
         <label class="bonus-option-label">
-          <input type="checkbox" id="bonus-rep-participation"> مشاركة (30)
+          <input type="checkbox" id="bonus-rep-participation" onchange="onBonusOptionChanged()"> مشاركة (30)
         </label>
       </div>
+    </div>
+
+    <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;margin-bottom:8px;">
+      إجمالي الـ Bonus الحالي: <span id="bonus-preview-value" style="color:#86efac;font-weight:600;">0</span>
     </div>
 
     <div class="modal-actions">
