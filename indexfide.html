@@ -25,7 +25,7 @@
     }
     .search-btn:hover { background: #2563eb; }
 
-    #preview { max-width: 480px; margin: 0 auto 24px; }
+    #preview { max-width: 500px; margin: 0 auto 24px; }
 
     .card {
       background: #1e293b; border-radius: 12px;
@@ -53,51 +53,39 @@
       padding: 10px; text-align: center;
     }
     .info-label { font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; }
-    .info-value { font-size: 1.1rem; font-weight: bold; color: #38bdf8; }
-    .info-value.unrated { color: #64748b; font-size: 0.85rem; }
+    .info-value { font-size: 1.05rem; font-weight: bold; color: #38bdf8; }
+    .info-value.none { color: #64748b; font-size: 0.85rem; }
 
-    .add-section { margin-top: 16px; text-align: center; }
+    .add-section { margin-top: 16px; }
     .add-btn {
-      padding: 10px 24px; border: none; border-radius: 8px;
+      padding: 10px; border: none; border-radius: 8px;
       background: #22c55e; color: white; cursor: pointer;
       font-size: 0.95rem; width: 100%;
     }
     .add-btn:hover { background: #16a34a; }
 
     #debug {
-      max-width: 480px; margin: 0 auto 12px;
-      background: #1e293b; border-radius: 8px;
-      padding: 8px 14px; font-size: 0.75rem;
-      color: #94a3b8; display: none; word-break: break-all;
+      max-width: 500px; margin: 0 auto 12px;
+      background: #1e293b; border-radius: 8px; padding: 8px 14px;
+      font-size: 0.75rem; color: #94a3b8; display: none;
     }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th { background: #1e40af; padding: 10px; font-size: 0.9rem; }
-    td { padding: 10px; border-bottom: 1px solid #334155; text-align: center; font-size: 0.9rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th { background: #1e40af; padding: 10px; font-size: 0.85rem; }
+    td { padding: 9px; border-bottom: 1px solid #334155; text-align: center; font-size: 0.85rem; }
     tbody tr:hover { background: #1e293b; }
 
-    .bonus-btn {
-      padding: 5px 10px; border: none; border-radius: 6px;
-      background: #3b82f6; color: white; cursor: pointer;
-    }
-    .del-btn {
-      padding: 5px 10px; border: none; border-radius: 6px;
-      background: #ef4444; color: white; cursor: pointer;
-    }
+    .bonus-btn { padding: 4px 10px; border: none; border-radius: 6px; background: #3b82f6; color: white; cursor: pointer; }
+    .del-btn   { padding: 4px 10px; border: none; border-radius: 6px; background: #ef4444; color: white; cursor: pointer; }
     .fide-link { color: #38bdf8; text-decoration: none; }
     .fide-link:hover { text-decoration: underline; }
 
-    .loading { text-align: center; color: #94a3b8; padding: 16px; }
-    .error   { color: #ef4444; text-align: center; padding: 16px; font-size: 0.9rem; }
+    .loading { text-align: center; color: #94a3b8; padding: 20px; }
+    .error   { color: #ef4444; text-align: center; padding: 16px; font-size: 0.9rem; line-height: 1.8; }
 
     .gold   { color: #fbbf24; font-weight: bold; }
     .silver { color: #94a3b8; font-weight: bold; }
     .bronze { color: #b45309; font-weight: bold; }
-
-    @media (max-width: 600px) {
-      table { font-size: 0.75rem; }
-      th, td { padding: 6px 4px; }
-    }
   </style>
 </head>
 <body>
@@ -123,6 +111,7 @@
       <th>Rapid</th>
       <th>Blitz</th>
       <th>African Rank</th>
+      <th>National Rank</th>
       <th>Bonus</th>
       <th>Final Score</th>
       <th>+Bonus</th>
@@ -133,10 +122,48 @@
 </table>
 
 <script>
-let players = [];
+let players      = [];
 let currentPlayer = null;
 
-// ✅ Final Score = Classical + Bonus فقط
+// ✅ الـ endpoint الصح
+const API = id =>
+  `https://fide-api.vercel.app/player_info/?fide_id=${id}&history=false`;
+
+// CORS Proxies
+const wrap = [
+  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+];
+
+function setDebug(msg, hide = false) {
+  const el = document.getElementById("debug");
+  if (hide) { el.style.display = "none"; return; }
+  el.style.display = "block";
+  el.textContent = "🛠 " + msg;
+}
+
+async function safeFetch(url) {
+  // Direct
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (r.ok) { setDebug("✅ Direct"); return { json: await r.json(), ok: true }; }
+  } catch (_) {}
+
+  // Proxies
+  for (const make of wrap) {
+    try {
+      setDebug("جاري المحاولة عبر proxy...");
+      const r = await fetch(make(url), { signal: AbortSignal.timeout(9000) });
+      if (!r.ok) continue;
+      let data = await r.json();
+      if (data.contents) data = JSON.parse(data.contents); // allorigins
+      setDebug("✅ proxy نجح");
+      return { json: data, ok: true };
+    } catch (_) {}
+  }
+  return { ok: false };
+}
+
 function calcScore(p) {
   return (p.classical || 0) + (p.bonus || 0);
 }
@@ -151,23 +178,20 @@ function render() {
   tbody.innerHTML = "";
   players.forEach((p, i) => {
     const cls   = rankClass(i);
-    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1;
-    const titleBadge = p.title
+    const medal = ['🥇','🥈','🥉'][i] ?? (i + 1);
+    const badge = p.title
       ? `<span style="background:#f59e0b;color:#000;padding:1px 5px;border-radius:3px;font-size:0.7rem;margin-right:4px">${p.title}</span>`
       : '';
     tbody.innerHTML += `
       <tr>
         <td class="${cls}">${medal}</td>
-        <td>
-          <a class="fide-link" href="https://ratings.fide.com/profile/${p.fideId}" target="_blank">
-            ${titleBadge}${p.name}
-          </a>
-        </td>
+        <td><a class="fide-link" href="https://ratings.fide.com/profile/${p.fideId}" target="_blank">${badge}${p.name}</a></td>
         <td>${p.federation ?? '-'}</td>
-        <td class="${cls}">${p.classical ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.rapid     ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.blitz     ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.africanRank ?? '<span style="color:#64748b">-</span>'}</td>
+        <td class="${cls}">${p.classical   ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.rapid      ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.blitz      ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.africanRank   ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.nationalRank  ?? '<span style="color:#64748b">-</span>'}</td>
         <td>${p.bonus}</td>
         <td><strong class="${cls}">${calcScore(p)}</strong></td>
         <td><button class="bonus-btn" onclick="addBonus(${p.uid})">+10</button></td>
@@ -176,126 +200,83 @@ function render() {
   });
 }
 
-function showDebug(msg) {
-  const d = document.getElementById("debug");
-  d.style.display = "block";
-  d.textContent = "🛠 " + msg;
-}
-
-function hideDebug() {
-  document.getElementById("debug").style.display = "none";
-}
-
-// جرب direct ثم corsproxy ثم allorigins
-async function tryFetch(url) {
-  // 1. Direct
-  try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (r.ok) { showDebug("✅ Direct connection"); return { res: r, type: "direct" }; }
-  } catch (_) {}
-
-  // 2. corsproxy.io
-  try {
-    const proxy = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-    showDebug("جاري المحاولة عبر corsproxy.io...");
-    const r = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
-    if (r.ok) { showDebug("✅ corsproxy.io"); return { res: r, type: "direct" }; }
-  } catch (_) {}
-
-  // 3. allorigins
-  try {
-    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-    showDebug("جاري المحاولة عبر allorigins...");
-    const r = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
-    if (r.ok) { showDebug("✅ allorigins"); return { res: r, type: "allorigins" }; }
-  } catch (_) {}
-
-  return null;
-}
-
 async function lookupPlayer() {
   const id = document.getElementById("fideid").value.trim();
   if (!id) return alert("ادخل FIDE ID");
 
   const preview = document.getElementById("preview");
   preview.innerHTML = `<div class="loading">⏳ جاري جلب بيانات اللاعب...</div>`;
-  showDebug("جاري الاتصال...");
+  setDebug("جاري الاتصال...");
   currentPlayer = null;
 
-  const url = `https://fide-api.vercel.app/player/${id}/info`;
-  const result = await tryFetch(url);
+  const { json: d, ok } = await safeFetch(API(id));
 
-  if (!result) {
+  if (!ok || !d) {
     preview.innerHTML = `<div class="error">
-      ❌ فشل الاتصال بالـ API<br>
-      <small>تأكد من الـ FIDE ID أو افتح الكونسول (F12) لتفاصيل أكتر</small>
+      ❌ فشل الاتصال<br>
+      <small>تأكد من الـ FIDE ID أو افتح F12 → Console لمزيد من التفاصيل</small>
     </div>`;
     return;
   }
 
-  try {
-    let raw = await result.res.json();
-    // allorigins بيرجع { contents: "..." }
-    if (raw.contents) raw = JSON.parse(raw.contents);
+  currentPlayer = {
+    uid:         Date.now(),
+    fideId:      d.fide_id,
+    name:        d.name             ?? 'Unknown',
+    title:       (d.fide_title && d.fide_title !== 'None') ? d.fide_title : null,
+    federation:  d.federation       ?? '-',
+    birth_year:  d.birth_year       ?? '-',
+    sex:         d.sex              ?? '-',
+    classical:   d.classical_rating ?? null,
+    rapid:       d.rapid_rating     ?? null,
+    blitz:       d.blitz_rating     ?? null,
+    worldRank:   d.world_rank_active        ?? null,
+    africanRank: d.continental_rank_active  ?? null,
+    nationalRank: d.national_rank_active    ?? null,
+    bonus:       0
+  };
 
-    currentPlayer = {
-      uid:        Date.now(),
-      fideId:     id,
-      name:       raw.name        ?? 'Unknown',
-      title:      (raw.title && raw.title !== 'None') ? raw.title : null,
-      federation: raw.federation  ?? '-',
-      birth_year: raw.birth_year  ?? '-',
-      classical:  raw.classical_rating          ?? raw.standard_elo ?? null,
-      rapid:      raw.rapid_rating              ?? raw.rapid_elo    ?? null,
-      blitz:      raw.blitz_rating              ?? raw.blitz_elo    ?? null,
-      africanRank: raw.continental_rank_active  ?? null,
-      bonus:      0
-    };
+  function box(label, val) {
+    return `<div class="info-item">
+      <div class="info-label">${label}</div>
+      <div class="info-value ${val != null ? '' : 'none'}">${val ?? '-'}</div>
+    </div>`;
+  }
 
-    function box(label, val) {
-      return `<div class="info-item">
-        <div class="info-label">${label}</div>
-        <div class="info-value ${val != null ? '' : 'unrated'}">${val ?? '-'}</div>
-      </div>`;
-    }
-
-    preview.innerHTML = `
-      <div class="card">
-        <div class="card-header">
-          <div class="avatar">♟️</div>
-          <div>
-            <div class="player-name">${currentPlayer.name}</div>
-            ${currentPlayer.title ? `<span class="player-title">${currentPlayer.title}</span>` : ''}
+  preview.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="avatar">♟️</div>
+        <div>
+          <div class="player-name">${currentPlayer.name}</div>
+          ${currentPlayer.title ? `<span class="player-title">${currentPlayer.title}</span>` : ''}
+          <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px">
+            ${currentPlayer.federation} · Born ${currentPlayer.birth_year} · ${currentPlayer.sex}
           </div>
         </div>
-        <div class="info-grid">
-          ${box('🌍 Federation',   currentPlayer.federation)}
-          ${box('🎂 Birth Year',   currentPlayer.birth_year)}
-          ${box('🪪 FIDE ID',      id)}
-          ${box('⚡ Classical',    currentPlayer.classical)}
-          ${box('🚀 Rapid',        currentPlayer.rapid)}
-          ${box('🔥 Blitz',        currentPlayer.blitz)}
-          ${box('🌍 African Rank', currentPlayer.africanRank)}
-        </div>
-        <div class="add-section">
-          <button class="add-btn" onclick="addToTable()">➕ أضف للجدول</button>
-        </div>
-      </div>`;
-
-  } catch (e) {
-    preview.innerHTML = `<div class="error">❌ خطأ في قراءة البيانات: ${e.message}</div>`;
-  }
+      </div>
+      <div class="info-grid">
+        ${box('⚡ Classical',     currentPlayer.classical)}
+        ${box('🚀 Rapid',         currentPlayer.rapid)}
+        ${box('🔥 Blitz',         currentPlayer.blitz)}
+        ${box('🌍 World Rank',    currentPlayer.worldRank)}
+        ${box('🌍 African Rank',  currentPlayer.africanRank)}
+        ${box('🇪🇬 National Rank', currentPlayer.nationalRank)}
+      </div>
+      <div class="add-section">
+        <button class="add-btn" onclick="addToTable()">➕ أضف للجدول</button>
+      </div>
+    </div>`;
 }
 
 function addToTable() {
   if (!currentPlayer) return;
   if (players.find(p => p.fideId === currentPlayer.fideId))
     return alert("اللاعب موجود بالفعل في الجدول!");
-
   players.push({ ...currentPlayer, uid: Date.now() });
   document.getElementById("preview").innerHTML = "";
   document.getElementById("fideid").value = "";
-  hideDebug();
+  setDebug("", true);
   render();
 }
 
