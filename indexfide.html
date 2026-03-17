@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Egypt Rating</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial; background: #0f172a; color: white; padding: 20px; }
+    h1 { text-align: center; margin: 20px 0 30px; }
+
+    .search-box {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      justify-content: center; margin-bottom: 20px;
+    }
+    .search-box input {
+      padding: 10px 16px; border-radius: 8px;
+      border: 2px solid #334155; background: #1e293b;
+      color: white; font-size: 1rem; width: 200px;
+    }
+    .search-box input:focus { outline: none; border-color: #3b82f6; }
+    .search-btn {
+      padding: 10px 20px; border: none; border-radius: 8px;
+      background: #3b82f6; color: white; font-size: 1rem; cursor: pointer;
+    }
+    .search-btn:hover { background: #2563eb; }
+
+    #preview { max-width: 480px; margin: 0 auto 24px; }
+
+    .card {
+      background: #1e293b; border-radius: 12px;
+      padding: 20px; border: 1px solid #334155;
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 16px; padding-bottom: 14px;
+      border-bottom: 1px solid #334155;
+    }
+    .avatar {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: #1e40af; display: flex;
+      align-items: center; justify-content: center; font-size: 1.5rem;
+    }
+    .player-name { font-size: 1.1rem; font-weight: bold; }
+    .player-title {
+      display: inline-block; background: #f59e0b;
+      color: #000; padding: 2px 8px; border-radius: 4px;
+      font-size: 0.75rem; font-weight: bold; margin-top: 4px;
+    }
+    .info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .info-item {
+      background: #0f172a; border-radius: 8px;
+      padding: 10px; text-align: center;
+    }
+    .info-label { font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; }
+    .info-value { font-size: 1.1rem; font-weight: bold; color: #38bdf8; }
+    .info-value.unrated { color: #64748b; font-size: 0.8rem; }
+
+    .add-section { margin-top: 16px; text-align: center; }
+    .add-btn {
+      padding: 10px 24px; border: none; border-radius: 8px;
+      background: #22c55e; color: white; cursor: pointer;
+      font-size: 0.95rem; width: 100%;
+    }
+    .add-btn:hover { background: #16a34a; }
+
+    /* debug box */
+    #debug {
+      max-width: 480px; margin: 0 auto 16px;
+      background: #1e293b; border-radius: 8px;
+      padding: 10px 14px; font-size: 0.75rem;
+      color: #94a3b8; display: none; word-break: break-all;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { background: #1e40af; padding: 10px; }
+    td { padding: 10px; border-bottom: 1px solid #334155; text-align: center; }
+    tbody tr:hover { background: #1e293b; }
+    .bonus-btn {
+      padding: 5px 10px; border: none; border-radius: 6px;
+      background: #3b82f6; color: white; cursor: pointer;
+    }
+    .del-btn {
+      padding: 5px 10px; border: none; border-radius: 6px;
+      background: #ef4444; color: white; cursor: pointer;
+    }
+    .fide-link { color: #38bdf8; text-decoration: none; font-size: 0.85rem; }
+    .fide-link:hover { text-decoration: underline; }
+
+    .loading { text-align: center; color: #94a3b8; padding: 16px; }
+    .error   { color: #ef4444; text-align: center; padding: 16px; font-size:0.9rem; }
+    .gold    { color: #fbbf24; font-weight: bold; }
+    .silver  { color: #94a3b8; font-weight: bold; }
+    .bronze  { color: #b45309; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>🇪🇬 Chess Egypt Rating</h1>
+
+<div class="search-box">
+  <input id="fideid" type="number" placeholder="FIDE ID"
+    onkeydown="if(event.key==='Enter') lookupPlayer()">
+  <button class="search-btn" onclick="lookupPlayer()">🔍 بحث</button>
+</div>
+
+<div id="debug"></div>
+<div id="preview"></div>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th><th>الاسم</th><th>Federation</th>
+      <th>Classical</th><th>Rapid</th><th>Blitz</th>
+      <th>African Rank</th><th>Bonus</th><th>Final Score</th>
+      <th>+Bonus</th><th>حذف</th>
+    </tr>
+  </thead>
+  <tbody id="players"></tbody>
+</table>
+
+<script>
+let players = [];
+let currentPlayer = null;
+
+// CORS proxies — بنجرب واحدة واحدة لو فشلت
+const PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  // Removed allorigins because it currently fails CORS on GitHub Pages
+  // url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+];
+
+const FIDE_BASE = "https://fide-api.vercel.app";
+
+// جرب الـ endpoints المختلفة
+const ENDPOINTS = id => [
+  `${FIDE_BASE}/player/${id}/info`,
+  `${FIDE_BASE}/player/info?fide_id=${id}`,
+  `${FIDE_BASE}/player/info?id=${id}`,
+];
+
+function showDebug(msg) {
+  const d = document.getElementById("debug");
+  d.style.display = "block";
+  d.innerHTML = "🛠 " + msg;
+}
+
+async function tryFetch(url) {
+  // أولاً جرب بدون proxy
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) return { res: r, source: "direct", urlUsed: url };
+    showDebug(`فشل الطلب المباشر<br>URL: ${url}<br>Status: ${r.status} ${r.statusText}`);
+  } catch (e) {
+    showDebug(`خطأ في الطلب المباشر<br>URL: ${url}<br>Details: ${e}`);
+  }
+
+  // جرب كل proxy
+  for (const makeProxy of PROXIES) {
+    try {
+      const proxyUrl = makeProxy(url);
+      showDebug(`جاري المحاولة عبر proxy:<br>${proxyUrl}`);
+      const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) return { res: r, source: "proxy", urlUsed: proxyUrl };
+      showDebug(`فشل الطلب عبر proxy<br>URL: ${proxyUrl}<br>Status: ${r.status} ${r.statusText}`);
+    } catch (e) {
+      showDebug(`خطأ في الطلب عبر proxy<br>URL: ${makeProxy(url)}<br>Details: ${e}`);
+    }
+  }
+  return null;
+}
+
+function extractData(json, source, proxyUrl) {
+  // لو allorigins بيرجع { contents: "..." }
+  if (typeof json.contents === "string") {
+    try { json = JSON.parse(json.contents); } catch (_) {}
+  }
+  return json;
+}
+
+async function lookupPlayer() {
+  const id = document.getElementById("fideid").value.trim();
+  if (!id) return alert("ادخل FIDE ID");
+
+  const preview = document.getElementById("preview");
+  preview.innerHTML = `<div class="loading">⏳ جاري جلب بيانات اللاعب...</div>`;
+  document.getElementById("debug").style.display = "none";
+  currentPlayer = null;
+
+  let data = null;
+
+  for (const endpoint of ENDPOINTS(id)) {
+    showDebug(`جاري تجربة:<br>${endpoint}`);
+    const result = await tryFetch(endpoint);
+    if (result) {
+      try {
+        const raw = await result.res.json();
+        data = extractData(raw, result.source);
+        showDebug(`تم استلام رد من الـ API<br>Source: ${result.source}<br>URL: ${result.urlUsed}<br>Preview: <pre>${JSON.stringify(data).slice(0, 400)}</pre>`);
+        if (data && (data.name || data.classical_rating || data.personal_data)) {
+          showDebug(`✅ نجح جلب بيانات اللاعب من:<br>${result.urlUsed}`);
+          break;
+        }
+      } catch (e) {
+        showDebug(`فشل في قراءة JSON من الرد<br>URL: ${result.urlUsed}<br>Details: ${e}`);
+      }
+    }
+    data = null;
+  }
+
+  if (!data) {
+    preview.innerHTML = `<div class="error">
+      ❌ فشل الاتصال بالـ API<br>
+      <small>تأكد من الـ FIDE ID أو جرب افتح الكونسول (F12) لتفاصيل أكتر</small>
+    </div>`;
+    return;
+  }
+
+  // دعم formats مختلفة للـ response
+  const personal = data.personal_data || data;
+  const elo      = data.elo || data;
+
+  currentPlayer = {
+    uid:        Date.now(),
+    fideId:     id,
+    name:       personal.name        ?? data.name        ?? 'Unknown',
+    title:      (() => {
+      const t = personal.title ?? data.title;
+      return (t && t !== 'None') ? t : null;
+    })(),
+    federation: personal.federation  ?? data.federation  ?? '-',
+    birth_year: personal.birth_year  ?? data.birth_year  ?? '-',
+    classical:  elo.classical_rating ?? elo.standard_elo ?? data.classical_rating ?? null,
+    rapid:      elo.rapid_rating     ?? elo.rapid_elo    ?? data.rapid_rating     ?? null,
+    blitz:      elo.blitz_rating     ?? elo.blitz_elo    ?? data.blitz_rating     ?? null,
+    africanRank: data.continental_rank_active ?? personal.continental_rank_active ?? null,
+    bonus:      0
+  };
+
+  function box(label, val) {
+    return `<div class="info-item">
+      <div class="info-label">${label}</div>
+      <div class="info-value ${val ? '' : 'unrated'}">${val ?? '-'}</div>
+    </div>`;
+  }
+
+  preview.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="avatar">♟️</div>
+        <div>
+          <div class="player-name">${currentPlayer.name}</div>
+          ${currentPlayer.title ? `<span class="player-title">${currentPlayer.title}</span>` : ''}
+        </div>
+      </div>
+      <div class="info-grid">
+        ${box('🌍 Federation',   currentPlayer.federation)}
+        ${box('🎂 Birth Year',   currentPlayer.birth_year)}
+        ${box('🪪 FIDE ID',      id)}
+        ${box('⚡ Classical',    currentPlayer.classical)}
+        ${box('🚀 Rapid',        currentPlayer.rapid)}
+        ${box('🔥 Blitz',        currentPlayer.blitz)}
+        ${box('🌍 African Rank', currentPlayer.africanRank)}
+      </div>
+      <div class="add-section">
+        <button class="add-btn" onclick="addToTable()">➕ أضف للجدول</button>
+      </div>
+    </div>`;
+}
+
+function calcScore(p) {
+  return (p.classical || 0) + (p.rapid || 0) + (p.blitz || 0) + p.bonus;
+}
+
+function rankClass(i) {
+  return i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+}
+
+function render() {
+  players.sort((a, b) => calcScore(b) - calcScore(a));
+  const tbody = document.getElementById("players");
+  tbody.innerHTML = "";
+  players.forEach((p, i) => {
+    const cls   = rankClass(i);
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1;
+    tbody.innerHTML += `
+      <tr>
+        <td class="${cls}">${medal}</td>
+        <td>
+          <a class="fide-link" href="https://ratings.fide.com/profile/${p.fideId}" target="_blank">
+            ${p.title ? `<span style="background:#f59e0b;color:#000;padding:1px 5px;border-radius:3px;font-size:0.7rem;margin-right:4px">${p.title}</span>` : ''}
+            ${p.name}
+          </a>
+        </td>
+        <td>${p.federation ?? '-'}</td>
+        <td class="${cls}">${p.classical ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.rapid     ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.blitz     ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.africanRank ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.bonus}</td>
+        <td><strong class="${cls}">${calcScore(p)}</strong></td>
+        <td><button class="bonus-btn" onclick="addBonus(${p.uid})">+10</button></td>
+        <td><button class="del-btn"   onclick="deletePlayer(${p.uid})">🗑</button></td>
+      </tr>`;
+  });
+}
+
+function addToTable() {
+  if (!currentPlayer) return;
+  if (players.find(p => p.fideId === currentPlayer.fideId))
+    return alert("اللاعب موجود بالفعل في الجدول!");
+  players.push({ ...currentPlayer, uid: Date.now() });
+  document.getElementById("preview").innerHTML = "";
+  document.getElementById("debug").style.display = "none";
+  document.getElementById("fideid").value = "";
+  render();
+}
+
+function addBonus(uid) {
+  const p = players.find(p => p.uid === uid);
+  if (p) { p.bonus += 10; render(); }
+}
+
+function deletePlayer(uid) {
+  players = players.filter(p => p.uid !== uid);
+  render();
+}
+</script>
+</body>
+</html>
