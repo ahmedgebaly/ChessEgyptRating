@@ -5,128 +5,369 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chess Egypt Rating</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --glass-bg:      rgba(255,255,255,0.07);
+      --glass-border:  rgba(255,255,255,0.15);
+      --glass-shadow:  rgba(0,0,0,0.4);
+      --accent:        #3b82f6;
+      --accent-glow:   rgba(59,130,246,0.4);
+      --gold:          #f59e0b;
+      --silver:        #94a3b8;
+      --bronze:        #b45309;
+      --green:         #22c55e;
+      --red:           #ef4444;
+      --text:          rgba(255,255,255,0.92);
+      --text-muted:    rgba(255,255,255,0.45);
+      --radius:        16px;
+      --radius-sm:     10px;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial; background: #0f172a; color: white; padding: 20px; }
-    h1 { text-align: center; margin: 20px 0 30px; }
 
-    .search-box {
-      display: flex; gap: 10px; flex-wrap: wrap;
-      justify-content: center; margin-bottom: 20px;
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      background: #0a0f1e;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(59,130,246,0.18) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(16,185,129,0.08) 0%, transparent 60%);
+      color: var(--text);
+      padding: 24px 16px 48px;
+      -webkit-font-smoothing: antialiased;
     }
-    .search-box input {
-      padding: 10px 16px; border-radius: 8px;
-      border: 2px solid #334155; background: #1e293b;
-      color: white; font-size: 1rem; width: 200px;
-    }
-    .search-box input:focus { outline: none; border-color: #3b82f6; }
-    .search-btn {
-      padding: 10px 20px; border: none; border-radius: 8px;
-      background: #3b82f6; color: white; font-size: 1rem; cursor: pointer;
-    }
-    .search-btn:hover { background: #2563eb; }
 
-    #preview { max-width: 500px; margin: 0 auto 24px; }
-
-    .card {
-      background: #1e293b; border-radius: 12px;
-      padding: 20px; border: 1px solid #334155;
+    /* ── Glass Mixin ── */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px) saturate(1.8);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 8px 32px var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.1);
     }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-weight: 300;
+    }
+
+    /* ── Search Card ── */
+    .search-card {
+      max-width: 480px;
+      margin: 0 auto 28px;
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .search-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .search-row {
+      display: flex;
+      gap: 10px;
+    }
+    .search-input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.05);
+      color: white;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input::placeholder { color: var(--text-muted); }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    /* Chrome number arrows hide */
+    .search-input::-webkit-outer-spin-button,
+    .search-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.96); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white;
+      box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 20px rgba(99,102,241,0.6); }
+
+    .btn-green {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      box-shadow: 0 4px 15px rgba(34,197,94,0.35);
+      width: 100%;
+      padding: 13px;
+      border-radius: var(--radius-sm);
+      margin-top: 14px;
+      font-size: 0.95rem;
+    }
+    .btn-green:hover { box-shadow: 0 6px 20px rgba(34,197,94,0.5); }
+
+    .btn-blue-sm {
+      background: rgba(59,130,246,0.2);
+      color: #93c5fd;
+      border: 1px solid rgba(59,130,246,0.3);
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+    .btn-blue-sm:hover { background: rgba(59,130,246,0.35); }
+
+    .btn-red-sm {
+      background: rgba(239,68,68,0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239,68,68,0.25);
+      padding: 5px 10px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+    }
+    .btn-red-sm:hover { background: rgba(239,68,68,0.3); }
+
+    /* ── Debug ── */
+    #debug {
+      max-width: 480px; margin: 0 auto 14px;
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      font-size: 0.75rem; color: var(--text-muted);
+      display: none;
+    }
+
+    /* ── Preview Card ── */
+    #preview { max-width: 480px; margin: 0 auto 28px; }
+
+    .player-card {
+      border-radius: var(--radius);
+      padding: 22px;
+      animation: fadeUp 0.3s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
     .card-header {
-      display: flex; align-items: center; gap: 14px;
-      margin-bottom: 16px; padding-bottom: 14px;
-      border-bottom: 1px solid #334155;
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 18px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--glass-border);
     }
     .avatar {
-      width: 52px; height: 52px; border-radius: 50%;
-      background: #1e40af; display: flex;
-      align-items: center; justify-content: center; font-size: 1.5rem;
+      width: 54px; height: 54px; border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(99,102,241,0.5);
     }
-    .player-name { font-size: 1.1rem; font-weight: bold; }
-    .player-title {
-      display: inline-block; background: #f59e0b;
-      color: #000; padding: 2px 8px; border-radius: 4px;
-      font-size: 0.75rem; font-weight: bold; margin-top: 4px;
+    .player-name {
+      font-size: 1.05rem; font-weight: 600;
+      line-height: 1.3;
     }
-    .info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
-    .info-item {
-      background: #0f172a; border-radius: 8px;
-      padding: 10px; text-align: center;
+    .player-meta {
+      font-size: 0.75rem; color: var(--text-muted);
+      margin-top: 4px; font-weight: 300;
     }
-    .info-label { font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; }
-    .info-value { font-size: 1.05rem; font-weight: bold; color: #38bdf8; }
-    .info-value.none { color: #64748b; font-size: 0.85rem; }
-
-    .add-section { margin-top: 16px; }
-    .add-btn {
-      padding: 10px; border: none; border-radius: 8px;
-      background: #22c55e; color: white; cursor: pointer;
-      font-size: 0.95rem; width: 100%;
-    }
-    .add-btn:hover { background: #16a34a; }
-
-    #debug {
-      max-width: 500px; margin: 0 auto 12px;
-      background: #1e293b; border-radius: 8px; padding: 8px 14px;
-      font-size: 0.75rem; color: #94a3b8; display: none;
+    .title-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #000; padding: 2px 8px; border-radius: 5px;
+      font-size: 0.7rem; font-weight: 700;
+      margin-right: 6px; vertical-align: middle;
     }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th { background: #1e40af; padding: 10px; font-size: 0.85rem; }
-    td { padding: 9px; border-bottom: 1px solid #334155; text-align: center; font-size: 0.85rem; }
-    tbody tr:hover { background: #1e293b; }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .info-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-sm);
+      padding: 12px 8px;
+      text-align: center;
+      transition: background 0.2s;
+    }
+    .info-box:hover { background: rgba(255,255,255,0.08); }
+    .info-box-label {
+      font-size: 0.65rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 6px; font-weight: 500;
+    }
+    .info-box-value {
+      font-size: 1.1rem; font-weight: 700; color: #93c5fd;
+      line-height: 1;
+    }
+    .info-box-value.empty { color: var(--text-muted); font-size: 0.8rem; font-weight: 400; }
 
-    .bonus-btn { padding: 4px 10px; border: none; border-radius: 6px; background: #3b82f6; color: white; cursor: pointer; }
-    .del-btn   { padding: 4px 10px; border: none; border-radius: 6px; background: #ef4444; color: white; cursor: pointer; }
-    .fide-link { color: #38bdf8; text-decoration: none; }
-    .fide-link:hover { text-decoration: underline; }
+    /* ── Table Section ── */
+    .table-section {
+      border-radius: var(--radius);
+      padding: 20px;
+      overflow-x: auto;
+    }
+    .table-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+    }
+    .table-title {
+      font-size: 0.85rem; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .player-count {
+      background: rgba(59,130,246,0.2);
+      color: #93c5fd; border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 20px; padding: 3px 12px;
+      font-size: 0.78rem; font-weight: 600;
+    }
 
-    .loading { text-align: center; color: #94a3b8; padding: 20px; }
-    .error   { color: #ef4444; text-align: center; padding: 16px; font-size: 0.9rem; line-height: 1.8; }
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    thead th {
+      padding: 10px 12px;
+      font-size: 0.72rem; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.5px; text-align: center;
+      border-bottom: 1px solid var(--glass-border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: background 0.15s;
+    }
+    tbody tr:hover { background: rgba(255,255,255,0.04); }
+    tbody tr:last-child { border-bottom: none; }
+    td {
+      padding: 12px;
+      font-size: 0.85rem; text-align: center;
+      vertical-align: middle;
+    }
 
-    .gold   { color: #fbbf24; font-weight: bold; }
-    .silver { color: #94a3b8; font-weight: bold; }
-    .bronze { color: #b45309; font-weight: bold; }
+    .rank-cell { font-size: 1.1rem; }
+    .name-cell { text-align: left; }
+    .fide-link {
+      color: var(--text);
+      text-decoration: none; font-weight: 500;
+      transition: color 0.15s;
+    }
+    .fide-link:hover { color: #93c5fd; }
 
-    @media (max-width: 600px) {
-      th, td { padding: 6px 4px; font-size: 0.75rem; }
+    .rating-val { font-weight: 600; }
+    .rating-muted { color: var(--text-muted); font-size: 0.8rem; }
+
+    .score-pill {
+      display: inline-block;
+      padding: 4px 12px; border-radius: 20px;
+      font-weight: 700; font-size: 0.9rem;
+    }
+
+    /* Medal colors */
+    .gold-text   { color: #fbbf24; }
+    .silver-text { color: #94a3b8; }
+    .bronze-text { color: #cd7c2f; }
+
+    .score-gold   { background: rgba(251,191,36,0.15);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .score-silver { background: rgba(148,163,184,0.15); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.3); }
+    .score-bronze { background: rgba(205,124,47,0.15);  color: #cd7c2f; border: 1px solid rgba(205,124,47,0.3); }
+    .score-normal { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 48px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+    .empty-state p { font-size: 0.9rem; font-weight: 300; }
+
+    .loading-state { text-align: center; padding: 24px; color: var(--text-muted); font-size: 0.9rem; }
+    .error-state {
+      text-align: center; padding: 20px;
+      color: #fca5a5; font-size: 0.9rem; line-height: 1.8;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      body { padding: 16px 12px 40px; }
+      .search-row { flex-direction: column; }
+      .btn-primary { width: 100%; }
+      .info-grid { grid-template-columns: repeat(2, 1fr); }
+      .table-section { padding: 14px 10px; }
     }
   </style>
 </head>
 <body>
 
-<h1>🇪🇬 Chess Egypt Rating</h1>
+<!-- Header -->
+<header>
+  <h1>♟ Chess Egypt Rating</h1>
+  <p>FIDE Player Lookup & Live Ranking</p>
+</header>
 
-<div class="search-box">
-  <input id="fideid" type="number" placeholder="FIDE ID"
-    onkeydown="if(event.key==='Enter') lookupPlayer()">
-  <button class="search-btn" onclick="lookupPlayer()">🔍 بحث</button>
+<!-- Search -->
+<div class="search-card glass">
+  <div class="search-label">🔍 Search by FIDE ID</div>
+  <div class="search-row">
+    <input id="fideid" class="search-input" type="number"
+      placeholder="e.g. 54273099"
+      onkeydown="if(event.key==='Enter') lookupPlayer()">
+    <button class="btn btn-primary" onclick="lookupPlayer()">Search</button>
+  </div>
 </div>
 
-<div id="debug"></div>
+<div id="debug" class="glass"></div>
 <div id="preview"></div>
 
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>الاسم</th>
-      <th>Federation</th>
-      <th>Classical</th>
-      <th>Rapid</th>
-      <th>Blitz</th>
-      <th>African Rank</th>
-      <th>National Rank</th>
-      <th>Bonus</th>
-      <th>Final Score</th>
-      <th>+Bonus</th>
-      <th>حذف</th>
-    </tr>
-  </thead>
-  <tbody id="players"></tbody>
-</table>
+<!-- Table -->
+<div class="table-section glass">
+  <div class="table-header">
+    <span class="table-title">🏆 Live Rankings</span>
+    <span class="player-count" id="count">0 Players</span>
+  </div>
+  <div id="table-wrap">
+    <div class="empty-state">
+      <div class="icon">♟</div>
+      <p>Search for a player by FIDE ID and add them to the ranking</p>
+    </div>
+  </div>
+</div>
 
 <script>
-let players       = [];
+let players = [];
 let currentPlayer = null;
 
 const WORKER = "https://fideproxy.a-r-gebaly.workers.dev";
@@ -140,146 +381,162 @@ function setDebug(msg, hide = false) {
 }
 
 async function safeFetch(url) {
-  // 1. Direct (يشتغل لو الـ API عنده CORS مفتوح)
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (r.ok) {
-      setDebug("✅ Direct connection");
-      return { json: await r.json(), ok: true };
-    }
+    if (r.ok) { setDebug("✅ Direct"); return { json: await r.json(), ok: true }; }
   } catch (_) {}
 
-  // 2. Cloudflare Worker
   try {
-    setDebug("جاري المحاولة عبر Cloudflare Worker...");
-    const proxy = `${WORKER}/?url=${encodeURIComponent(url)}`;
-    const r = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
-    if (r.ok) {
-      setDebug("✅ Cloudflare Worker نجح");
-      return { json: await r.json(), ok: true };
-    }
+    setDebug("Connecting via Cloudflare Worker...");
+    const r = await fetch(`${WORKER}/?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(9000) });
+    if (r.ok) { setDebug("✅ Worker connected"); return { json: await r.json(), ok: true }; }
   } catch (_) {}
 
   return { ok: false };
 }
 
-function calcScore(p) {
-  return (p.classical || 0) + (p.bonus || 0);
-}
+function calcScore(p) { return (p.classical || 0) + (p.bonus || 0); }
 
-function rankClass(i) {
-  return i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+function scoreClass(i) {
+  return i === 0 ? 'score-gold' : i === 1 ? 'score-silver' : i === 2 ? 'score-bronze' : 'score-normal';
+}
+function textClass(i) {
+  return i === 0 ? 'gold-text' : i === 1 ? 'silver-text' : i === 2 ? 'bronze-text' : '';
 }
 
 function render() {
   players.sort((a, b) => calcScore(b) - calcScore(a));
-  const tbody = document.getElementById("players");
-  tbody.innerHTML = "";
-  players.forEach((p, i) => {
-    const cls   = rankClass(i);
-    const medal = ['🥇','🥈','🥉'][i] ?? (i + 1);
-    const badge = p.title
-      ? `<span style="background:#f59e0b;color:#000;padding:1px 5px;border-radius:3px;font-size:0.7rem;margin-right:4px">${p.title}</span>`
-      : '';
-    tbody.innerHTML += `
+  document.getElementById("count").textContent = `${players.length} Player${players.length !== 1 ? 's' : ''}`;
+
+  const wrap = document.getElementById("table-wrap");
+
+  if (players.length === 0) {
+    wrap.innerHTML = `<div class="empty-state">
+      <div class="icon">♟</div>
+      <p>Search for a player by FIDE ID and add them to the ranking</p>
+    </div>`;
+    return;
+  }
+
+  let rows = players.map((p, i) => {
+    const medal  = ['🥇','🥈','🥉'][i] ?? `<span style="color:var(--text-muted)">${i+1}</span>`;
+    const cls    = textClass(i);
+    const sCls   = scoreClass(i);
+    const badge  = p.title ? `<span class="title-badge">${p.title}</span>` : '';
+    const rating = val => val != null
+      ? `<span class="rating-val ${cls}">${val}</span>`
+      : `<span class="rating-muted">—</span>`;
+
+    return `<tr>
+      <td class="rank-cell">${medal}</td>
+      <td class="name-cell">
+        <a class="fide-link" href="https://ratings.fide.com/profile/${p.fideId}" target="_blank">
+          ${badge}${p.name}
+        </a>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">${p.federation ?? ''}</div>
+      </td>
+      <td>${rating(p.classical)}</td>
+      <td>${rating(p.rapid)}</td>
+      <td>${rating(p.blitz)}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem">${p.africanRank ?? '—'}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem">${p.nationalRank ?? '—'}</td>
+      <td style="color:#86efac;font-weight:600">${p.bonus > 0 ? '+'+p.bonus : p.bonus}</td>
+      <td><span class="score-pill ${sCls}">${calcScore(p)}</span></td>
+      <td><button class="btn btn-blue-sm" onclick="addBonus(${p.uid})">+10</button></td>
+      <td><button class="btn btn-red-sm"  onclick="deletePlayer(${p.uid})">🗑</button></td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table>
+    <thead>
       <tr>
-        <td class="${cls}">${medal}</td>
-        <td>
-          <a class="fide-link" href="https://ratings.fide.com/profile/${p.fideId}" target="_blank">
-            ${badge}${p.name}
-          </a>
-        </td>
-        <td>${p.federation  ?? '-'}</td>
-        <td class="${cls}">${p.classical    ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.rapid       ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.blitz       ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.africanRank  ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.nationalRank ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.bonus}</td>
-        <td><strong class="${cls}">${calcScore(p)}</strong></td>
-        <td><button class="bonus-btn" onclick="addBonus(${p.uid})">+10</button></td>
-        <td><button class="del-btn"   onclick="deletePlayer(${p.uid})">🗑</button></td>
-      </tr>`;
-  });
+        <th>#</th><th style="text-align:left">Player</th>
+        <th>Classical</th><th>Rapid</th><th>Blitz</th>
+        <th>African</th><th>National</th>
+        <th>Bonus</th><th>Score</th>
+        <th></th><th></th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
 async function lookupPlayer() {
   const id = document.getElementById("fideid").value.trim();
-  if (!id) return alert("ادخل FIDE ID");
+  if (!id) return;
 
   const preview = document.getElementById("preview");
-  preview.innerHTML = `<div class="loading">⏳ جاري جلب بيانات اللاعب...</div>`;
-  setDebug("جاري الاتصال...");
+  preview.innerHTML = `<div class="player-card glass"><div class="loading-state">⏳ Fetching player data...</div></div>`;
+  setDebug("Connecting...");
   currentPlayer = null;
 
   const { json: d, ok } = await safeFetch(API(id));
 
   if (!ok || !d) {
-    preview.innerHTML = `<div class="error">
-      ❌ فشل الاتصال<br>
-      <small>تأكد من الـ FIDE ID أو افتح F12 → Console لمزيد من التفاصيل</small>
+    preview.innerHTML = `<div class="player-card glass">
+      <div class="error-state">❌ Player not found<br>
+      <small style="color:var(--text-muted)">Check the FIDE ID or open F12 → Console</small></div>
     </div>`;
     return;
   }
 
   currentPlayer = {
-    uid:          Date.now(),
-    fideId:       d.fide_id,
-    name:         d.name              ?? 'Unknown',
+    uid: Date.now(), fideId: d.fide_id,
+    name:         d.name             ?? 'Unknown',
     title:        (d.fide_title && d.fide_title !== 'None') ? d.fide_title : null,
-    federation:   d.federation        ?? '-',
-    birth_year:   d.birth_year        ?? '-',
-    sex:          d.sex               ?? '-',
-    classical:    d.classical_rating  ?? null,
-    rapid:        d.rapid_rating      ?? null,
-    blitz:        d.blitz_rating      ?? null,
-    worldRank:    d.world_rank_active         ?? null,
-    africanRank:  d.continental_rank_active   ?? null,
-    nationalRank: d.national_rank_active      ?? null,
-    bonus:        0
+    federation:   d.federation       ?? '-',
+    birth_year:   d.birth_year       ?? '-',
+    sex:          d.sex              ?? '-',
+    classical:    d.classical_rating ?? null,
+    rapid:        d.rapid_rating     ?? null,
+    blitz:        d.blitz_rating     ?? null,
+    worldRank:    d.world_rank_active        ?? null,
+    africanRank:  d.continental_rank_active  ?? null,
+    nationalRank: d.national_rank_active     ?? null,
+    bonus: 0
   };
 
-  function box(label, val) {
-    return `<div class="info-item">
-      <div class="info-label">${label}</div>
-      <div class="info-value ${val != null ? '' : 'none'}">${val ?? '-'}</div>
-    </div>`;
-  }
+  const box = (label, val) => `<div class="info-box">
+    <div class="info-box-label">${label}</div>
+    <div class="info-box-value ${val != null ? '' : 'empty'}">${val ?? '—'}</div>
+  </div>`;
 
   preview.innerHTML = `
-    <div class="card">
+    <div class="player-card glass">
       <div class="card-header">
-        <div class="avatar">♟️</div>
-        <div>
-          <div class="player-name">${currentPlayer.name}</div>
-          ${currentPlayer.title ? `<span class="player-title">${currentPlayer.title}</span>` : ''}
-          <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px">
+        <div class="avatar">♟</div>
+        <div style="flex:1;min-width:0">
+          <div class="player-name">
+            ${currentPlayer.title ? `<span class="title-badge">${currentPlayer.title}</span>` : ''}
+            ${currentPlayer.name}
+          </div>
+          <div class="player-meta">
             ${currentPlayer.federation} · Born ${currentPlayer.birth_year} · ${currentPlayer.sex}
+            · FIDE ID: ${id}
           </div>
         </div>
       </div>
       <div class="info-grid">
-        ${box('⚡ Classical',      currentPlayer.classical)}
-        ${box('🚀 Rapid',          currentPlayer.rapid)}
-        ${box('🔥 Blitz',          currentPlayer.blitz)}
-        ${box('🌍 World Rank',     currentPlayer.worldRank)}
-        ${box('🌍 African Rank',   currentPlayer.africanRank)}
-        ${box('🇪🇬 National Rank', currentPlayer.nationalRank)}
+        ${box('⚡ Classical',    currentPlayer.classical)}
+        ${box('🚀 Rapid',        currentPlayer.rapid)}
+        ${box('🔥 Blitz',        currentPlayer.blitz)}
+        ${box('🌍 World Rank',   currentPlayer.worldRank)}
+        ${box('🌍 African Rank', currentPlayer.africanRank)}
+        ${box('🇪🇬 National',   currentPlayer.nationalRank)}
       </div>
-      <div class="add-section">
-        <button class="add-btn" onclick="addToTable()">➕ أضف للجدول</button>
-      </div>
+      <button class="btn btn-green" onclick="addToTable()">➕ Add to Rankings</button>
     </div>`;
+
+  setDebug("", true);
 }
 
 function addToTable() {
   if (!currentPlayer) return;
   if (players.find(p => p.fideId === currentPlayer.fideId))
-    return alert("اللاعب موجود بالفعل في الجدول!");
+    return alert("Player already in the ranking!");
   players.push({ ...currentPlayer, uid: Date.now() });
   document.getElementById("preview").innerHTML = "";
   document.getElementById("fideid").value = "";
-  setDebug("", true);
   render();
 }
 
@@ -292,7 +549,8 @@ function deletePlayer(uid) {
   players = players.filter(p => p.uid !== uid);
   render();
 }
-</script>
 
+render();
+</script>
 </body>
 </html>
