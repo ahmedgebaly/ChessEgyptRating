@@ -86,6 +86,10 @@
     .gold   { color: #fbbf24; font-weight: bold; }
     .silver { color: #94a3b8; font-weight: bold; }
     .bronze { color: #b45309; font-weight: bold; }
+
+    @media (max-width: 600px) {
+      th, td { padding: 6px 4px; font-size: 0.75rem; }
+    }
   </style>
 </head>
 <body>
@@ -122,18 +126,11 @@
 </table>
 
 <script>
-let players      = [];
+let players       = [];
 let currentPlayer = null;
 
-// ✅ الـ endpoint الصح
-const API = id =>
-  `https://fide-api.vercel.app/player_info/?fide_id=${id}&history=false`;
-
-// CORS Proxies
-const wrap = [
-  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-];
+const WORKER = "https://fideproxy.a-r-gebaly.workers.dev";
+const API    = id => `https://fide-api.vercel.app/player_info/?fide_id=${id}&history=false`;
 
 function setDebug(msg, hide = false) {
   const el = document.getElementById("debug");
@@ -143,24 +140,26 @@ function setDebug(msg, hide = false) {
 }
 
 async function safeFetch(url) {
-  // Direct
+  // 1. Direct (يشتغل لو الـ API عنده CORS مفتوح)
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (r.ok) { setDebug("✅ Direct"); return { json: await r.json(), ok: true }; }
+    if (r.ok) {
+      setDebug("✅ Direct connection");
+      return { json: await r.json(), ok: true };
+    }
   } catch (_) {}
 
-  // Proxies
-  for (const make of wrap) {
-    try {
-      setDebug("جاري المحاولة عبر proxy...");
-      const r = await fetch(make(url), { signal: AbortSignal.timeout(9000) });
-      if (!r.ok) continue;
-      let data = await r.json();
-      if (data.contents) data = JSON.parse(data.contents); // allorigins
-      setDebug("✅ proxy نجح");
-      return { json: data, ok: true };
-    } catch (_) {}
-  }
+  // 2. Cloudflare Worker
+  try {
+    setDebug("جاري المحاولة عبر Cloudflare Worker...");
+    const proxy = `${WORKER}/?url=${encodeURIComponent(url)}`;
+    const r = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
+    if (r.ok) {
+      setDebug("✅ Cloudflare Worker نجح");
+      return { json: await r.json(), ok: true };
+    }
+  } catch (_) {}
+
   return { ok: false };
 }
 
@@ -185,13 +184,17 @@ function render() {
     tbody.innerHTML += `
       <tr>
         <td class="${cls}">${medal}</td>
-        <td><a class="fide-link" href="https://ratings.fide.com/profile/${p.fideId}" target="_blank">${badge}${p.name}</a></td>
-        <td>${p.federation ?? '-'}</td>
-        <td class="${cls}">${p.classical   ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.rapid      ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.blitz      ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.africanRank   ?? '<span style="color:#64748b">-</span>'}</td>
-        <td>${p.nationalRank  ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>
+          <a class="fide-link" href="https://ratings.fide.com/profile/${p.fideId}" target="_blank">
+            ${badge}${p.name}
+          </a>
+        </td>
+        <td>${p.federation  ?? '-'}</td>
+        <td class="${cls}">${p.classical    ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.rapid       ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.blitz       ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.africanRank  ?? '<span style="color:#64748b">-</span>'}</td>
+        <td>${p.nationalRank ?? '<span style="color:#64748b">-</span>'}</td>
         <td>${p.bonus}</td>
         <td><strong class="${cls}">${calcScore(p)}</strong></td>
         <td><button class="bonus-btn" onclick="addBonus(${p.uid})">+10</button></td>
@@ -220,20 +223,20 @@ async function lookupPlayer() {
   }
 
   currentPlayer = {
-    uid:         Date.now(),
-    fideId:      d.fide_id,
-    name:        d.name             ?? 'Unknown',
-    title:       (d.fide_title && d.fide_title !== 'None') ? d.fide_title : null,
-    federation:  d.federation       ?? '-',
-    birth_year:  d.birth_year       ?? '-',
-    sex:         d.sex              ?? '-',
-    classical:   d.classical_rating ?? null,
-    rapid:       d.rapid_rating     ?? null,
-    blitz:       d.blitz_rating     ?? null,
-    worldRank:   d.world_rank_active        ?? null,
-    africanRank: d.continental_rank_active  ?? null,
-    nationalRank: d.national_rank_active    ?? null,
-    bonus:       0
+    uid:          Date.now(),
+    fideId:       d.fide_id,
+    name:         d.name              ?? 'Unknown',
+    title:        (d.fide_title && d.fide_title !== 'None') ? d.fide_title : null,
+    federation:   d.federation        ?? '-',
+    birth_year:   d.birth_year        ?? '-',
+    sex:          d.sex               ?? '-',
+    classical:    d.classical_rating  ?? null,
+    rapid:        d.rapid_rating      ?? null,
+    blitz:        d.blitz_rating      ?? null,
+    worldRank:    d.world_rank_active         ?? null,
+    africanRank:  d.continental_rank_active   ?? null,
+    nationalRank: d.national_rank_active      ?? null,
+    bonus:        0
   };
 
   function box(label, val) {
@@ -256,11 +259,11 @@ async function lookupPlayer() {
         </div>
       </div>
       <div class="info-grid">
-        ${box('⚡ Classical',     currentPlayer.classical)}
-        ${box('🚀 Rapid',         currentPlayer.rapid)}
-        ${box('🔥 Blitz',         currentPlayer.blitz)}
-        ${box('🌍 World Rank',    currentPlayer.worldRank)}
-        ${box('🌍 African Rank',  currentPlayer.africanRank)}
+        ${box('⚡ Classical',      currentPlayer.classical)}
+        ${box('🚀 Rapid',          currentPlayer.rapid)}
+        ${box('🔥 Blitz',          currentPlayer.blitz)}
+        ${box('🌍 World Rank',     currentPlayer.worldRank)}
+        ${box('🌍 African Rank',   currentPlayer.africanRank)}
         ${box('🇪🇬 National Rank', currentPlayer.nationalRank)}
       </div>
       <div class="add-section">
