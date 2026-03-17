@@ -320,6 +320,70 @@
       color: #fca5a5; font-size: 0.9rem; line-height: 1.8;
     }
 
+    /* ── Bonus Modal ── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal {
+      width: 100%;
+      max-width: 520px;
+      border-radius: var(--radius);
+      padding: 20px 20px 16px;
+    }
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .modal-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .bonus-section {
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .bonus-section-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .bonus-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      font-size: 0.8rem;
+    }
+    .bonus-option-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--glass-border);
+      padding-inline: 14px;
+    }
+
     /* ── Responsive ── */
     @media (max-width: 480px) {
       body { padding: 16px 12px 40px; }
@@ -366,6 +430,19 @@
   </div>
 </div>
 
+<!-- Footer Rules -->
+<footer class="glass" style="max-width:480px;margin:0 auto;margin-top:16px;padding:14px 16px;border-radius:12px;font-size:0.8rem;line-height:1.7;color:var(--text-muted);">
+  <div style="font-weight:600;color:var(--text);margin-bottom:6px;">قواعد احتساب الـ Bonus</div>
+  <ul style="margin-right:18px;">
+    <li>إفريقيا: الأول 70 نقطة، الثاني 50، الثالث 30.</li>
+    <li>العرب: الأول 70 نقطة، الثاني 50، الثالث 30.</li>
+    <li>الجمهورية (الترتيب): الأول 100 نقطة، الثاني 70، الثالث 50.</li>
+    <li>الألقاب: IM = 40 نقطة، FM = 20 نقطة، CM = 10 نقاط.</li>
+    <li>المشاركة في بطولة الجمهورية: 30 نقطة.</li>
+    <li>مسموح اختيار خيار واحد فقط من كل كاتيجوري، ويُجمع إجمالي البونص مع تصنيف الكلاسيك.</li>
+  </ul>
+</footer>
+
 <script>
 let players = [];
 let currentPlayer = null;
@@ -395,7 +472,23 @@ async function safeFetch(url) {
   return { ok: false };
 }
 
-function calcScore(p) { return (p.classical || 0) + (p.bonus || 0); }
+function calcBonusTotal(p) {
+  const details = p.bonusDetails || {};
+  const total =
+    (details.africa || 0) +
+    (details.arab || 0) +
+    (details.republicRank || 0) +
+    (details.title || 0) +
+    (details.republicParticipation || 0);
+  p.bonus = total;
+  return total;
+}
+
+function calcScore(p) {
+  const base = p.classical || 0;
+  const bonus = calcBonusTotal(p);
+  return base + bonus;
+}
 
 function scoreClass(i) {
   return i === 0 ? 'score-gold' : i === 1 ? 'score-silver' : i === 2 ? 'score-bronze' : 'score-normal';
@@ -442,7 +535,7 @@ function render() {
       <td style="color:var(--text-muted);font-size:0.82rem">${p.nationalRank ?? '—'}</td>
       <td style="color:#86efac;font-weight:600">${p.bonus > 0 ? '+'+p.bonus : p.bonus}</td>
       <td><span class="score-pill ${sCls}">${calcScore(p)}</span></td>
-      <td><button class="btn btn-blue-sm" onclick="addBonus(${p.uid})">+10</button></td>
+      <td><button class="btn btn-blue-sm" onclick="openBonusPopup(${p.uid})">Bonus</button></td>
       <td><button class="btn btn-red-sm"  onclick="deletePlayer(${p.uid})">🗑</button></td>
     </tr>`;
   }).join('');
@@ -493,7 +586,14 @@ async function lookupPlayer() {
     worldRank:    d.world_rank_active        ?? null,
     africanRank:  d.continental_rank_active  ?? null,
     nationalRank: d.national_rank_active     ?? null,
-    bonus: 0
+    bonus: 0,
+    bonusDetails: {
+      africa: 0,
+      arab: 0,
+      republicRank: 0,
+      title: 0,
+      republicParticipation: 0
+    }
   };
 
   const box = (label, val) => `<div class="info-box">
@@ -540,9 +640,63 @@ function addToTable() {
   render();
 }
 
-function addBonus(uid) {
-  const p = players.find(p => p.uid === uid);
-  if (p) { p.bonus += 10; render(); }
+let bonusPlayerUid = null;
+
+function openBonusPopup(uid) {
+  bonusPlayerUid = uid;
+  const p = players.find(pl => pl.uid === uid);
+  if (!p) return;
+  if (!p.bonusDetails) {
+    p.bonusDetails = { africa: 0, arab: 0, republicRank: 0, title: 0, republicParticipation: 0 };
+  }
+
+  const modalName = document.getElementById("bonus-player-name");
+  modalName.textContent = p.name || "";
+
+  const d = p.bonusDetails;
+  const setRadio = (name, value) => {
+    const group = document.querySelectorAll(`input[name="${name}"]`);
+    group.forEach(r => { r.checked = String(r.value) === String(value); });
+  };
+
+  setRadio("africa", d.africa || 0);
+  setRadio("arab", d.arab || 0);
+  setRadio("republicRank", d.republicRank || 0);
+  setRadio("titleBonus", d.title || 0);
+
+  const repCheck = document.getElementById("bonus-rep-participation");
+  repCheck.checked = !!d.republicParticipation;
+
+  document.getElementById("bonus-modal-backdrop").classList.add("active");
+}
+
+function closeBonusPopup() {
+  bonusPlayerUid = null;
+  document.getElementById("bonus-modal-backdrop").classList.remove("active");
+}
+
+function saveBonusFromPopup() {
+  if (bonusPlayerUid == null) return;
+  const p = players.find(pl => pl.uid === bonusPlayerUid);
+  if (!p) return;
+  if (!p.bonusDetails) {
+    p.bonusDetails = { africa: 0, arab: 0, republicRank: 0, title: 0, republicParticipation: 0 };
+  }
+
+  const getRadioValue = (name) => {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? Number(el.value) : 0;
+  };
+
+  p.bonusDetails.africa = getRadioValue("africa");
+  p.bonusDetails.arab = getRadioValue("arab");
+  p.bonusDetails.republicRank = getRadioValue("republicRank");
+  p.bonusDetails.title = getRadioValue("titleBonus");
+  p.bonusDetails.republicParticipation = document.getElementById("bonus-rep-participation").checked ? 30 : 0;
+
+  calcBonusTotal(p);
+  closeBonusPopup();
+  render();
 }
 
 function deletePlayer(uid) {
@@ -552,5 +706,99 @@ function deletePlayer(uid) {
 
 render();
 </script>
+
+<div id="bonus-modal-backdrop" class="modal-backdrop">
+  <div class="modal glass">
+    <div class="modal-title">تعديل الـ Bonus</div>
+    <div class="modal-subtitle">اللاعب: <span id="bonus-player-name"></span></div>
+
+    <div class="bonus-section">
+      <div class="bonus-section-title">إفريقيا</div>
+      <div class="bonus-options">
+        <label class="bonus-option-label">
+          <input type="radio" name="africa" value="70"> أول (70)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="africa" value="50"> ثاني (50)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="africa" value="30"> ثالث (30)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="africa" value="0" checked> بدون
+        </label>
+      </div>
+    </div>
+
+    <div class="bonus-section">
+      <div class="bonus-section-title">العرب</div>
+      <div class="bonus-options">
+        <label class="bonus-option-label">
+          <input type="radio" name="arab" value="70"> أول (70)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="arab" value="50"> ثاني (50)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="arab" value="30"> ثالث (30)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="arab" value="0" checked> بدون
+        </label>
+      </div>
+    </div>
+
+    <div class="bonus-section">
+      <div class="bonus-section-title">الجمهورية (ترتيب)</div>
+      <div class="bonus-options">
+        <label class="bonus-option-label">
+          <input type="radio" name="republicRank" value="100"> أول (100)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="republicRank" value="70"> ثاني (70)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="republicRank" value="50"> ثالث (50)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="republicRank" value="0" checked> بدون
+        </label>
+      </div>
+    </div>
+
+    <div class="bonus-section">
+      <div class="bonus-section-title">الألقاب</div>
+      <div class="bonus-options">
+        <label class="bonus-option-label">
+          <input type="radio" name="titleBonus" value="40"> IM (40)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="titleBonus" value="20"> FM (20)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="titleBonus" value="10"> CM (10)
+        </label>
+        <label class="bonus-option-label">
+          <input type="radio" name="titleBonus" value="0" checked> بدون
+        </label>
+      </div>
+    </div>
+
+    <div class="bonus-section">
+      <div class="bonus-section-title">المشاركة في الجمهورية</div>
+      <div class="bonus-options">
+        <label class="bonus-option-label">
+          <input type="checkbox" id="bonus-rep-participation"> مشاركة (30)
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeBonusPopup()">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveBonusFromPopup()">حفظ</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
