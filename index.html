@@ -5,45 +5,295 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chess Egypt Rating</title>
   <style>
-    body { font-family: Arial; background:#0f172a; color:white; padding:20px; }
-    h1 { text-align:center; }
-    table { width:100%; border-collapse: collapse; margin-top:20px; }
-    th, td { padding:10px; border-bottom:1px solid #334155; text-align:center; }
-    button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
-    .add { background:#22c55e; color:white; }
-    .del { background:#ef4444; color:white; }
-    .input-box { margin-top:20px; }
-    input { padding:8px; margin:5px; border-radius:6px; border:none; }
-    tbody tr:hover { background:#1e293b; }
-    th { background:#1e40af; }
+    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --glass-bg:      rgba(255,255,255,0.07);
+      --glass-border:  rgba(255,255,255,0.15);
+      --glass-shadow:  rgba(0,0,0,0.4);
+      --accent:        #3b82f6;
+      --accent-glow:   rgba(59,130,246,0.4);
+      --gold:          #f59e0b;
+      --silver:        #94a3b8;
+      --bronze:        #b45309;
+      --green:         #22c55e;
+      --red:           #ef4444;
+      --text:          rgba(255,255,255,0.92);
+      --text-muted:    rgba(255,255,255,0.45);
+      --radius:        16px;
+      --radius-sm:     10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      background: #0a0f1e;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(59,130,246,0.18) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(16,185,129,0.08) 0%, transparent 60%);
+      color: var(--text);
+      padding: 24px 16px 48px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Glass Mixin ── */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px) saturate(1.8);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 8px 32px var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-weight: 300;
+    }
+
+    /* ── Input Card ── */
+    .input-card {
+      max-width: 600px;
+      margin: 0 auto 28px;
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .input-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .input-field {
+      flex: 1;
+      min-width: 150px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.05);
+      color: white;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-field::placeholder { color: var(--text-muted); }
+    .input-field:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    /* Chrome number arrows hide */
+    .input-field::-webkit-outer-spin-button,
+    .input-field::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.96); }
+
+    .btn-green {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      box-shadow: 0 4px 15px rgba(34,197,94,0.35);
+      width: 100%;
+      padding: 13px;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+    }
+    .btn-green:hover { box-shadow: 0 6px 20px rgba(34,197,94,0.5); }
+
+    .btn-blue-sm {
+      background: rgba(59,130,246,0.2);
+      color: #93c5fd;
+      border: 1px solid rgba(59,130,246,0.3);
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+    .btn-blue-sm:hover { background: rgba(59,130,246,0.35); }
+
+    .btn-red-sm {
+      background: rgba(239,68,68,0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239,68,68,0.25);
+      padding: 5px 10px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+    }
+    .btn-red-sm:hover { background: rgba(239,68,68,0.3); }
+
+    /* ── Table Section ── */
+    .table-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      border-radius: var(--radius);
+      padding: 20px;
+      overflow-x: auto;
+    }
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .table-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .player-count {
+      background: rgba(59,130,246,0.2);
+      color: #93c5fd;
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    thead th {
+      padding: 10px 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+      border-bottom: 1px solid var(--glass-border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: background 0.15s;
+      animation: fadeUp 0.3s ease;
+    }
+    tbody tr:hover { background: rgba(255,255,255,0.04); }
+    tbody tr:last-child { border-bottom: none; }
+    td {
+      padding: 12px;
+      font-size: 0.85rem;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    .rank-cell { font-size: 1.1rem; }
+    .name-cell { text-align: right; font-weight: 500; }
+
+    .rating-val { font-weight: 600; }
+    .rating-muted { color: var(--text-muted); font-size: 0.8rem; }
+
+    .score-pill {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    /* Medal colors */
+    .gold-text   { color: #fbbf24; }
+    .silver-text { color: #94a3b8; }
+    .bronze-text { color: #cd7c2f; }
+
+    .score-gold   { background: rgba(251,191,36,0.15);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .score-silver { background: rgba(148,163,184,0.15); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.3); }
+    .score-bronze { background: rgba(205,124,47,0.15);  color: #cd7c2f; border: 1px solid rgba(205,124,47,0.3); }
+    .score-normal { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+    .empty-state p { font-size: 0.9rem; font-weight: 300; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      body { padding: 16px 12px 40px; }
+      .input-row { flex-direction: column; }
+      .input-field { min-width: 100%; }
+      .table-section { padding: 14px 10px; }
+    }
   </style>
 </head>
 <body>
 
-<h1>🇪🇬 Chess Egypt Rating</h1>
+<!-- Header -->
+<header>
+  <h1>♟ Chess Egypt Rating</h1>
+  <p>Manual Player Rankings</p>
+</header>
 
-<div class="input-box">
-  <input id="name" placeholder="اسم اللاعب">
-  <input id="rating" type="number" placeholder="FIDE Rating">
-  <input id="rank" type="number" placeholder="African Rank">
-  <button class="add" onclick="addPlayer()">إضافة لاعب</button>
+<!-- Input Card -->
+<div class="input-card glass">
+  <div class="input-label">➕ Add New Player</div>
+  <div class="input-row">
+    <input id="name" class="input-field" placeholder="اسم اللاعب">
+    <input id="rating" class="input-field" type="number" placeholder="FIDE Rating">
+    <input id="rank" class="input-field" type="number" placeholder="African Rank">
+  </div>
+  <button class="btn btn-green" onclick="addPlayer()">إضافة لاعب</button>
 </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>الاسم</th>
-      <th>Rating</th>
-      <th>African Rank</th>
-      <th>Bonus</th>
-      <th>Final Score</th>
-      <th>+Bonus</th>
-      <th>حذف</th>
-    </tr>
-  </thead>
-  <tbody id="players"></tbody>
-</table>
+<!-- Table -->
+<div class="table-section glass">
+  <div class="table-header">
+    <span class="table-title">🏆 Live Rankings</span>
+    <span class="player-count" id="count">0 Players</span>
+  </div>
+  <div id="table-wrap">
+    <div class="empty-state">
+      <div class="icon">♟</div>
+      <p>Add players manually to see the ranking</p>
+    </div>
+  </div>
+</div>
 
 <script>
 let players = [];
@@ -52,26 +302,63 @@ function calcScore(p) {
   return p.rating + p.bonus + (1000 - p.rank);
 }
 
+function scoreClass(i) {
+  return i === 0 ? 'score-gold' : i === 1 ? 'score-silver' : i === 2 ? 'score-bronze' : 'score-normal';
+}
+
+function textClass(i) {
+  return i === 0 ? 'gold-text' : i === 1 ? 'silver-text' : i === 2 ? 'bronze-text' : '';
+}
+
 function render() {
-  const tbody = document.getElementById("players");
-  tbody.innerHTML = "";
-
   players.sort((a, b) => calcScore(b) - calcScore(a));
+  document.getElementById("count").textContent = `${players.length} Player${players.length !== 1 ? 's' : ''}`;
 
-  players.forEach((p, i) => {
-    tbody.innerHTML += `
+  const wrap = document.getElementById("table-wrap");
+
+  if (players.length === 0) {
+    wrap.innerHTML = `<div class="empty-state">
+      <div class="icon">♟</div>
+      <p>Add players manually to see the ranking</p>
+    </div>`;
+    return;
+  }
+
+  let rows = players.map((p, i) => {
+    const medal  = ['🥇','🥈','🥉'][i] ?? `<span style="color:var(--text-muted)">${i+1}</span>`;
+    const cls    = textClass(i);
+    const sCls   = scoreClass(i);
+    const rating = val => val != null
+      ? `<span class="rating-val ${cls}">${val}</span>`
+      : `<span class="rating-muted">—</span>`;
+
+    return `<tr>
+      <td class="rank-cell">${medal}</td>
+      <td class="name-cell">${p.name}</td>
+      <td>${rating(p.rating)}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem">${p.rank ?? '—'}</td>
+      <td style="color:#86efac;font-weight:600">${p.bonus > 0 ? '+'+p.bonus : p.bonus}</td>
+      <td><span class="score-pill ${sCls}">${calcScore(p)}</span></td>
+      <td><button class="btn btn-blue-sm" onclick="addBonus(${p.id})">+10</button></td>
+      <td><button class="btn btn-red-sm"  onclick="deletePlayer(${p.id})">🗑</button></td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table>
+    <thead>
       <tr>
-        <td>${i + 1}</td>
-        <td>${p.name}</td>
-        <td>${p.rating}</td>
-        <td>${p.rank}</td>
-        <td>${p.bonus}</td>
-        <td><strong>${calcScore(p)}</strong></td>
-        <td><button onclick="addBonus(${p.id})">+10</button></td>
-        <td><button class="del" onclick="deletePlayer(${p.id})">🗑</button></td>
+        <th>#</th>
+        <th style="text-align:right">الاسم</th>
+        <th>Rating</th>
+        <th>African Rank</th>
+        <th>Bonus</th>
+        <th>Final Score</th>
+        <th>+Bonus</th>
+        <th>حذف</th>
       </tr>
-    `;
-  });
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
 function addPlayer() {
@@ -102,6 +389,8 @@ function deletePlayer(id) {
   players = players.filter(p => p.id !== id);
   render();
 }
+
+render();
 </script>
 
 </body>
