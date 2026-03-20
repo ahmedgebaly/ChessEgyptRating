@@ -487,6 +487,7 @@
     <span class="table-title">🏆 Live Rankings</span>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="player-count" id="count">0 Players</span>
+      <button class="btn btn-blue-sm" onclick="exportPlayersToExcel()">Download Excel</button>
       <button class="btn btn-red-sm" onclick="removeAllPlayers()">Remove All Players</button>
     </div>
   </div>
@@ -610,6 +611,79 @@ function scoreClass(i) {
 }
 function textClass(i) {
   return i === 0 ? 'gold-text' : i === 1 ? 'silver-text' : i === 2 ? 'bronze-text' : '';
+}
+
+function escapeCsvCell(value) {
+  const text = String(value ?? '');
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportPlayersToExcel() {
+  if (players.length === 0) {
+    alert("No players to export.");
+    return;
+  }
+
+  const sortedPlayers = [...players].sort((a, b) => calcScore(b) - calcScore(a));
+  const headers = [
+    'Rank',
+    'FIDE ID',
+    'Name',
+    'Title',
+    'Federation',
+    'Sex',
+    'Born',
+    'Classical',
+    'Rapid',
+    'Blitz',
+    'African Rank',
+    'National Rank',
+    'CurrentRate',
+    'Previous 1',
+    'Previous 2',
+    'Average',
+    'Bonus',
+    'Score'
+  ];
+
+  const lines = [headers.map(escapeCsvCell).join(',')];
+  sortedPlayers.forEach((p, index) => {
+    const row = [
+      index + 1,
+      p.fideId ?? '',
+      p.name ?? '',
+      p.title ?? '',
+      p.federation ?? '',
+      p.sex ?? '',
+      p.birth_year ?? '',
+      p.classical ?? '',
+      p.rapid ?? '',
+      p.blitz ?? '',
+      p.africanRank ?? '',
+      p.nationalRank ?? '',
+      p.currentRate ?? '',
+      p.previous1 ?? '',
+      p.previous2 ?? '',
+      p.average ?? '',
+      p.bonus ?? 0,
+      calcScore(p)
+    ];
+    lines.push(row.map(escapeCsvCell).join(','));
+  });
+
+  const csvContent = '\uFEFF' + lines.join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const timestamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}_${pad2(now.getHours())}-${pad2(now.getMinutes())}-${pad2(now.getSeconds())}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fide-rankings-${timestamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function render() {
