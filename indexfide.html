@@ -554,9 +554,11 @@ function calcBonusTotal(p) {
 }
 
 function calcScore(p) {
-  const base = p.classical || 0;
+  // Score is defined as: Bonus + Average
+  // If Average is missing, treat it as 0 so Score stays numeric and sortable.
   const bonus = calcBonusTotal(p);
-  return base + bonus;
+  const average = p.average ?? 0;
+  return bonus + average;
 }
 
 function sanitizeIntegerText(value) {
