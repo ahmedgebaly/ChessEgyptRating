@@ -1375,6 +1375,8 @@ function removeAllPlayers() {
   players = [];
   render();
   savePlayers();
+  showToast("🗑 All Players deleted", "error");
+
 }
 
 loadPlayers();
