@@ -457,7 +457,79 @@
       .avg-inputs { grid-template-columns: 1fr; }
       .table-section { padding: 14px 10px; }
     }
-  </style>
+  
+  /* ── Skeleton Loading ── */
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0.06) 25%,
+      rgba(255,255,255,0.14) 50%,
+      rgba(255,255,255,0.06) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: 8px;
+  }
+  .skeleton-card {
+    padding: 20px;
+    border-radius: var(--radius);
+  }
+  .skeleton-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .skeleton-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .skeleton-name   { height: 20px; width: 55%; margin-bottom: 8px; }
+  .skeleton-meta   { height: 13px; width: 75%; }
+  .skeleton-grid   { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .skeleton-box    { height: 56px; border-radius: 10px; }
+  .skeleton-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .skeleton-input  { height: 52px; border-radius: 8px; }
+  .skeleton-btn    { height: 44px; border-radius: 10px; }
+
+  /* ── Mobile Responsive Table ── */
+  .table-scroll-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius);
+  }
+
+  @media (max-width: 768px) {
+    .table-scroll-wrap table {
+      min-width: 600px;
+    }
+    th.col-hide-mobile,
+    td.col-hide-mobile {
+      display: none;
+    }
+    .table-scroll-wrap table th,
+    .table-scroll-wrap table td {
+      padding: 10px 8px;
+      font-size: 0.8rem;
+    }
+    .name-cell {
+      max-width: 120px;
+    }
+    .name-cell a {
+      font-size: 0.8rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .table-scroll-wrap table {
+      min-width: 480px;
+    }
+  }
+</style>
 </head>
 <body>
 
@@ -513,6 +585,56 @@
 </footer>
 
 <script>
+
+/* ── Local Storage ── */
+const LS_KEY = 'chess_egypt_players';
+
+function savePlayers() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(players));
+  } catch(e) {}
+}
+
+function loadPlayers() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        players = parsed;
+        // Recalculate bonus totals in case of data issues
+        players.forEach(p => calcBonusTotal(p));
+      }
+    }
+  } catch(e) {}
+}
+
+
+function getSkeletonHTML() {
+  return `<div class="player-card glass skeleton-card">
+    <div class="skeleton-header">
+      <div class="skeleton skeleton-avatar"></div>
+      <div style="flex:1">
+        <div class="skeleton skeleton-name"></div>
+        <div class="skeleton skeleton-meta"></div>
+      </div>
+    </div>
+    <div class="skeleton-grid">
+      <div class="skeleton skeleton-box"></div>
+      <div class="skeleton skeleton-box"></div>
+      <div class="skeleton skeleton-box"></div>
+      <div class="skeleton skeleton-box"></div>
+      <div class="skeleton skeleton-box"></div>
+      <div class="skeleton skeleton-box"></div>
+    </div>
+    <div class="skeleton-inputs">
+      <div class="skeleton skeleton-input"></div>
+      <div class="skeleton skeleton-input"></div>
+      <div class="skeleton skeleton-input"></div>
+    </div>
+    <div class="skeleton skeleton-btn"></div>
+  </div>`;
+}
 let players = [];
 let currentPlayer = null;
 
@@ -722,8 +844,8 @@ function render() {
       <td>${rating(p.classical)}</td>
       <td>${rating(p.rapid)}</td>
       <td>${rating(p.blitz)}</td>
-      <td style="color:var(--text-muted);font-size:0.82rem">${p.africanRank ?? '—'}</td>
-      <td style="color:var(--text-muted);font-size:0.82rem">${p.nationalRank ?? '—'}</td>
+      <td class="col-hide-mobile" style="color:var(--text-muted);font-size:0.82rem">${p.africanRank ?? '—'}</td>
+      <td class="col-hide-mobile" style="color:var(--text-muted);font-size:0.82rem">${p.nationalRank ?? '—'}</td>
       <td><button class="btn btn-average" onclick="openAveragePopup(${p.uid})">${formatAverageLabel(p.average)}</button></td>
       <td style="color:#86efac;font-weight:600">${p.bonus > 0 ? '+'+p.bonus : p.bonus}</td>
       <td><span class="score-pill ${sCls}">${calcScore(p)}</span></td>
@@ -732,18 +854,18 @@ function render() {
     </tr>`;
   }).join('');
 
-  wrap.innerHTML = `<table>
+  wrap.innerHTML = `<div class="table-scroll-wrap"><table>
     <thead>
       <tr>
         <th>#</th><th style="text-align:left">Player</th>
         <th>Classical</th><th>Rapid</th><th>Blitz</th>
-        <th>African</th><th>National</th>
+        <th class="col-hide-mobile">African</th><th class="col-hide-mobile">National</th>
         <th>Average</th><th>Bonus</th><th>Score</th>
         <th></th><th></th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
-  </table>`;
+  </table></div>`;
 }
 
 async function lookupPlayer() {
@@ -751,7 +873,7 @@ async function lookupPlayer() {
   if (!id) return;
 
   const preview = document.getElementById("preview");
-  preview.innerHTML = `<div class="player-card glass"><div class="loading-state">⏳ Fetching player data...</div></div>`;
+  preview.innerHTML = getSkeletonHTML();
   setDebug("Connecting...");
   currentPlayer = null;
 
@@ -857,6 +979,7 @@ function addToTable() {
   document.getElementById("preview").innerHTML = "";
   document.getElementById("fideid").value = "";
   render();
+  savePlayers();
 }
 
 let averagePlayerUid = null;
@@ -916,6 +1039,7 @@ function saveAverageFromPopup() {
 
   closeAveragePopup();
   render();
+  savePlayers();
 }
 
 let bonusPlayerUid = null;
@@ -976,6 +1100,7 @@ function saveBonusFromPopup() {
   calcBonusTotal(p);
   closeBonusPopup();
   render();
+  savePlayers();
 }
 
 function getModalBonusSelectionTotal() {
@@ -1009,6 +1134,7 @@ function deletePlayer(uid) {
   if (!shouldDelete) return;
   players = players.filter(p => p.uid !== uid);
   render();
+  savePlayers();
 }
 
 function removeAllPlayers() {
@@ -1017,8 +1143,10 @@ function removeAllPlayers() {
   if (!shouldDeleteAll) return;
   players = [];
   render();
+  savePlayers();
 }
 
+loadPlayers();
 render();
 </script>
 
