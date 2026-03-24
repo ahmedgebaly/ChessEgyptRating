@@ -402,6 +402,10 @@
       color: var(--text-muted);
       margin-bottom: 16px;
     }
+    .bonus-player-fideid {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
     .bonus-section {
       margin-bottom: 14px;
       padding: 10px 12px;
@@ -425,6 +429,17 @@
       align-items: center;
       gap: 4px;
       cursor: pointer;
+    }
+    .bonus-option-content {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-direction: row;
+    }
+    .bonus-medal {
+      font-size: 1.05rem;
+      line-height: 1;
+      flex-shrink: 0;
     }
     .modal-actions {
       display: flex;
@@ -736,7 +751,7 @@
     <li>الجمهورية (الترتيب): الأول 100 نقطة، الثاني 70، الثالث 50.</li>
     <li>الألقاب: IM = 40 نقطة، FM = 20 نقطة، CM = 10 نقاط.</li>
     <li>المشاركة في بطولة الجمهورية: 30 نقطة.</li>
-    <li>يُجمع إجمالي البونص مع تصنيف الكلاسيك.</li>
+    <li>يُجمع إجمالي ال Bonus مع تصنيف الكلاسيك.</li>
   </ul>
 </footer>
 
@@ -745,7 +760,7 @@
 /* ── Print / PDF ── */
 function printRankings() {
   if (players.length === 0) {
-    showToast("لا يوجد لاعبون للطباعة", "warning");
+    showToast("No players to print", "warning");
     return;
   }
   window.print();
@@ -779,10 +794,10 @@ function renderStatsBar() {
   const classics  = players.map(p => p.classical).filter(Boolean);
   const avgRating = classics.length ? Math.round(classics.reduce((a,b)=>a+b,0)/classics.length) : '—';
   bar.innerHTML = `
-    <div class="stat-chip">👥 <span>${players.length}</span> لاعب</div>
-    <div class="stat-chip">🏆 الأعلى <span>${top}</span></div>
-    <div class="stat-chip">⌀ متوسط Score <span>${avg}</span></div>
-    <div class="stat-chip">♟ متوسط Classical <span>${avgRating}</span></div>`;
+    <div class="stat-chip">👥 <span>${players.length}</span> Players</div>
+    <div class="stat-chip">🏆 Highest <span>${top}</span></div>
+    <div class="stat-chip">⌀ Average Score <span>${avg}</span></div>
+    <div class="stat-chip">♟ Average Classical <span>${avgRating}</span></div>`;
 }
 
 
@@ -944,7 +959,7 @@ function escapeCsvCell(value) {
 
 function exportPlayersToExcel() {
   if (players.length === 0) {
-    showToast("لا يوجد لاعبون للتصدير", "warning"); return;
+      showToast("No players to export", "warning"); return;
     return;
   }
 
@@ -1179,7 +1194,7 @@ function addToTable() {
   if (!currentPlayer) return;
   syncCurrentPlayerAverageFromInputs();
   if (players.find(p => p.fideId === currentPlayer.fideId)) {
-    showToast("⚠️ اللاعب موجود بالفعل في التصنيف", "warning"); return;
+    showToast("⚠️ Player already exists in the ranking", "warning"); return;
   }
   players.push({
     ...currentPlayer,
@@ -1190,7 +1205,7 @@ function addToTable() {
   document.getElementById("fideid").value = "";
   render();
   savePlayers();
-  showToast("✅ تم إضافة اللاعب بنجاح", "success");
+  showToast("✅ Player added successfully", "success");
 }
 
 let averagePlayerUid = null;
@@ -1265,6 +1280,10 @@ function openBonusPopup(uid) {
 
   const modalName = document.getElementById("bonus-player-name");
   modalName.textContent = p.name || "";
+  const modalFide = document.getElementById("bonus-player-fideid");
+  const fid = p.fideId;
+  modalFide.textContent =
+    fid != null && String(fid).trim() !== "" ? ` (${fid})` : "";
 
   const d = p.bonusDetails;
   const setRadio = (name, value) => {
@@ -1341,17 +1360,17 @@ function onBonusOptionChanged() {
 }
 
 function deletePlayer(uid) {
-  const shouldDelete = confirm("هل أنت متأكد من حذف هذا اللاعب؟");
+  const shouldDelete = confirm("Are you sure you want to delete this player?");
   if (!shouldDelete) return;
   players = players.filter(p => p.uid !== uid);
   render();
   savePlayers();
-  showToast("🗑 تم حذف اللاعب", "error");
+  showToast("🗑 Player deleted", "error");
 }
 
 function removeAllPlayers() {
   if (players.length === 0) return;
-  const shouldDeleteAll = confirm("هل أنت متأكد من حذف جميع اللاعبين؟");
+  const shouldDeleteAll = confirm("Are you sure you want to delete all players?");
   if (!shouldDeleteAll) return;
   players = [];
   render();
@@ -1370,23 +1389,38 @@ document.getElementById("fideid")
 
 <div id="bonus-modal-backdrop" class="modal-backdrop">
   <div class="modal glass">
-    <div class="modal-title">تعديل الـ Bonus</div>
-    <div class="modal-subtitle">اللاعب: <span id="bonus-player-name"></span></div>
+      <div class="modal-title">Edit Bonus</div>
+    <div class="modal-subtitle">Player: <span id="bonus-player-name"></span><span id="bonus-player-fideid" class="bonus-player-fideid"></span></div>
 
     <div class="bonus-section">
       <div class="bonus-section-title">إفريقيا</div>
       <div class="bonus-options">
         <label class="bonus-option-label">
-          <input type="radio" name="africa" value="70" onchange="onBonusOptionChanged()"> أول (70)
+          <input type="radio" name="africa" value="70" onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>أول (70)</span>
+            <span class="bonus-medal" aria-hidden="true">🥇</span>
+          </span>
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="africa" value="50" onchange="onBonusOptionChanged()"> ثاني (50)
+          <input type="radio" name="africa" value="50" onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>ثاني (50)</span>
+            <span class="bonus-medal" aria-hidden="true">🥈</span>
+          </span>
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="africa" value="30" onchange="onBonusOptionChanged()"> ثالث (30)
+          <input type="radio" name="africa" value="30" onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>ثالث (30)</span>
+            <span class="bonus-medal" aria-hidden="true">🥉</span>
+          </span>
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="africa" value="0" checked onchange="onBonusOptionChanged()"> بدون
+          <input type="radio" name="africa" value="0" checked onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>بدون</span>
+          </span>
         </label>
       </div>
     </div>
@@ -1395,16 +1429,31 @@ document.getElementById("fideid")
       <div class="bonus-section-title">العرب</div>
       <div class="bonus-options">
         <label class="bonus-option-label">
-          <input type="radio" name="arab" value="70" onchange="onBonusOptionChanged()"> أول (70)
+          <input type="radio" name="arab" value="70" onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>أول (70)</span>
+            <span class="bonus-medal" aria-hidden="true">🥇</span>
+          </span>
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="arab" value="50" onchange="onBonusOptionChanged()"> ثاني (50)
+          <input type="radio" name="arab" value="50" onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>ثاني (50)</span>
+            <span class="bonus-medal" aria-hidden="true">🥈</span>
+          </span>
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="arab" value="30" onchange="onBonusOptionChanged()"> ثالث (30)
+          <input type="radio" name="arab" value="30" onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>ثالث (30)</span>
+            <span class="bonus-medal" aria-hidden="true">🥉</span>
+          </span>
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="arab" value="0" checked onchange="onBonusOptionChanged()"> بدون
+          <input type="radio" name="arab" value="0" checked onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>بدون</span>
+          </span>
         </label>
       </div>
     </div>
@@ -1413,16 +1462,31 @@ document.getElementById("fideid")
       <div class="bonus-section-title">الجمهورية (ترتيب)</div>
       <div class="bonus-options">
         <label class="bonus-option-label">
-          <input type="radio" name="republicRank" value="100" onchange="onBonusOptionChanged()"> أول (100)
+          <input type="radio" name="republicRank" value="100" onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>أول (100)</span>
+            <span class="bonus-medal" aria-hidden="true">🥇</span>
+          </span>
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="republicRank" value="70" onchange="onBonusOptionChanged()"> ثاني (70)
+          <input type="radio" name="republicRank" value="70" onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>ثاني (70)</span>
+            <span class="bonus-medal" aria-hidden="true">🥈</span>
+          </span>
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="republicRank" value="50" onchange="onBonusOptionChanged()"> ثالث (50)
+          <input type="radio" name="republicRank" value="50" onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>ثالث (50)</span>
+            <span class="bonus-medal" aria-hidden="true">🥉</span>
+          </span>
         </label>
         <label class="bonus-option-label">
-          <input type="radio" name="republicRank" value="0" checked onchange="onBonusOptionChanged()"> بدون
+          <input type="radio" name="republicRank" value="0" checked onchange="onBonusOptionChanged()">
+          <span class="bonus-option-content" dir="rtl">
+            <span>بدون</span>
+          </span>
         </label>
       </div>
     </div>
@@ -1455,7 +1519,7 @@ document.getElementById("fideid")
     </div>
 
     <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;margin-bottom:8px;">
-      إجمالي الـ Bonus الحالي: <span id="bonus-preview-value" style="color:#86efac;font-weight:600;">0</span>
+      Current total bonus: <span id="bonus-preview-value" style="color:#86efac;font-weight:600;">0</span>
     </div>
 
     <div class="modal-actions">
