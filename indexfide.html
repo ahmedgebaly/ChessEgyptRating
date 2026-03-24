@@ -529,6 +529,73 @@
       min-width: 480px;
     }
   }
+
+    /* ── 1. Top-3 Row Highlight ── */
+    tbody tr:nth-child(1) {
+      background: rgba(251,191,36,0.05) !important;
+      border-left: 3px solid rgba(251,191,36,0.45);
+    }
+    tbody tr:nth-child(2) {
+      background: rgba(148,163,184,0.04) !important;
+      border-left: 3px solid rgba(148,163,184,0.3);
+    }
+    tbody tr:nth-child(3) {
+      background: rgba(205,124,47,0.04) !important;
+      border-left: 3px solid rgba(205,124,47,0.3);
+    }
+    tbody tr:nth-child(1):hover { background: rgba(251,191,36,0.09) !important; }
+    tbody tr:nth-child(2):hover { background: rgba(148,163,184,0.08) !important; }
+    tbody tr:nth-child(3):hover { background: rgba(205,124,47,0.08) !important; }
+
+    /* ── 2. Toast Notifications ── */
+    @keyframes toastIn  { from { opacity:0; transform:translateX(-50%) translateY(16px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+    @keyframes toastOut { from { opacity:1; transform:translateX(-50%) translateY(0); }   to { opacity:0; transform:translateX(-50%) translateY(16px); } }
+    .toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%);
+      padding: 11px 22px; border-radius: 12px;
+      font-size: 0.88rem; font-weight: 500;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      z-index: 9999; white-space: nowrap;
+      animation: toastIn 0.3s ease;
+      pointer-events: none;
+    }
+    .toast-success { background:rgba(34,197,94,0.18);  border:1px solid rgba(34,197,94,0.4);  color:#86efac; box-shadow:0 4px 20px rgba(34,197,94,0.25); }
+    .toast-error   { background:rgba(239,68,68,0.18);  border:1px solid rgba(239,68,68,0.4);  color:#fca5a5; box-shadow:0 4px 20px rgba(239,68,68,0.25); }
+    .toast-warning { background:rgba(251,191,36,0.18); border:1px solid rgba(251,191,36,0.4); color:#fde68a; box-shadow:0 4px 20px rgba(251,191,36,0.25); }
+
+    /* ── 3. Stats Bar ── */
+    .stats-bar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .stat-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 0.78rem; color: var(--text-muted);
+      display: flex; align-items: center; gap: 5px;
+      transition: background 0.2s;
+    }
+    .stat-chip span { color: var(--text); font-weight: 600; }
+
+    /* ── 4. Header Gradient ── */
+    header h1 {
+      background: linear-gradient(135deg, #ffffff 0%, #93c5fd 45%, #f59e0b 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
+    }
+
+    /* ── 6. Background Chess Pattern ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background-image: repeating-conic-gradient(
+        rgba(255,255,255,0.018) 0% 25%, transparent 0% 50%
+      );
+      background-size: 44px 44px;
+    }
 </style>
 </head>
 <body>
@@ -555,6 +622,7 @@
 
 <!-- Table -->
 <div class="table-section glass">
+  <div id="stats-bar" class="stats-bar"></div>
   <div class="table-header">
     <span class="table-title">🏆 Live Rankings</span>
     <div style="display:flex;align-items:center;gap:8px;">
@@ -585,6 +653,41 @@
 </footer>
 
 <script>
+
+/* ── Toast ── */
+let _toastTimer = null;
+function showToast(msg, type = 'success', duration = 2800) {
+  const old = document.getElementById('_toast');
+  if (old) old.remove();
+  if (_toastTimer) clearTimeout(_toastTimer);
+  const el = document.createElement('div');
+  el.id = '_toast';
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  _toastTimer = setTimeout(() => {
+    el.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => el.remove(), 300);
+  }, duration);
+}
+
+/* ── Stats Bar ── */
+function renderStatsBar() {
+  const bar = document.getElementById('stats-bar');
+  if (!bar) return;
+  if (players.length === 0) { bar.innerHTML = ''; return; }
+  const scores    = players.map(p => calcScore(p));
+  const top       = Math.max(...scores);
+  const avg       = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+  const classics  = players.map(p => p.classical).filter(Boolean);
+  const avgRating = classics.length ? Math.round(classics.reduce((a,b)=>a+b,0)/classics.length) : '—';
+  bar.innerHTML = `
+    <div class="stat-chip">👥 <span>${players.length}</span> لاعب</div>
+    <div class="stat-chip">🏆 الأعلى <span>${top}</span></div>
+    <div class="stat-chip">⌀ متوسط Score <span>${avg}</span></div>
+    <div class="stat-chip">♟ متوسط Classical <span>${avgRating}</span></div>`;
+}
+
 
 /* ── Local Storage ── */
 const LS_KEY = 'chess_egypt_players';
@@ -744,7 +847,7 @@ function escapeCsvCell(value) {
 
 function exportPlayersToExcel() {
   if (players.length === 0) {
-    alert("No players to export.");
+    showToast("لا يوجد لاعبون للتصدير", "warning"); return;
     return;
   }
 
@@ -817,6 +920,7 @@ function render() {
   const wrap = document.getElementById("table-wrap");
 
   if (players.length === 0) {
+    renderStatsBar();
     wrap.innerHTML = `<div class="empty-state">
       <div class="icon">♟</div>
       <p>Search for a player by FIDE ID and add them to the ranking</p>
@@ -854,6 +958,7 @@ function render() {
     </tr>`;
   }).join('');
 
+  renderStatsBar();
   wrap.innerHTML = `<div class="table-scroll-wrap"><table>
     <thead>
       <tr>
@@ -970,7 +1075,7 @@ function addToTable() {
   if (!currentPlayer) return;
   syncCurrentPlayerAverageFromInputs();
   if (players.find(p => p.fideId === currentPlayer.fideId))
-    return alert("Player already in the ranking!");
+    showToast("⚠️ اللاعب موجود بالفعل في التصنيف", "warning"); return;
   players.push({
     ...currentPlayer,
     uid: Date.now(),
@@ -980,6 +1085,7 @@ function addToTable() {
   document.getElementById("fideid").value = "";
   render();
   savePlayers();
+  showToast("✅ تم إضافة اللاعب بنجاح", "success");
 }
 
 let averagePlayerUid = null;
@@ -1130,16 +1236,17 @@ function onBonusOptionChanged() {
 }
 
 function deletePlayer(uid) {
-  const shouldDelete = confirm("Are you sure you want to delete this player?");
+  const shouldDelete = confirm("هل أنت متأكد من حذف هذا اللاعب؟");
   if (!shouldDelete) return;
   players = players.filter(p => p.uid !== uid);
   render();
   savePlayers();
+  showToast("🗑 تم حذف اللاعب", "error");
 }
 
 function removeAllPlayers() {
   if (players.length === 0) return;
-  const shouldDeleteAll = confirm("Are you sure you want to remove all players?");
+  const shouldDeleteAll = confirm("هل أنت متأكد من حذف جميع اللاعبين؟");
   if (!shouldDeleteAll) return;
   players = [];
   render();
@@ -1148,6 +1255,10 @@ function removeAllPlayers() {
 
 loadPlayers();
 render();
+
+/* ── Enter Key on Search ── */
+document.getElementById("fideid")
+  .addEventListener("keydown", e => { if (e.key === "Enter") lookupPlayer(); });
 </script>
 
 <footer class="mini-footer">Powered by: Zeyad Khalifa & Ahmed El Gebaly</footer>
