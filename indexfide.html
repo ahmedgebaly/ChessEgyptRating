@@ -596,6 +596,92 @@
       );
       background-size: 44px 44px;
     }
+
+    /* ── Sex Badge ── */
+    .sex-male   { color: #60a5fa; font-size: 1rem; font-weight: 700; }
+    .sex-female { color: #f472b6; font-size: 1rem; font-weight: 700; }
+    .sex-unknown{ color: var(--text-muted); font-size: 0.8rem; }
+
+    /* ── Print / PDF ── */
+    .btn-print {
+      background: rgba(139,92,246,0.2);
+      color: #c4b5fd;
+      border: 1px solid rgba(139,92,246,0.35);
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+    .btn-print:hover { background: rgba(139,92,246,0.35); }
+
+    @media print {
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        padding: 0 !important;
+      }
+      body::before { display: none !important; }
+      header h1 {
+        background: none !important;
+        -webkit-text-fill-color: #000 !important;
+        color: #000 !important;
+        font-size: 1.4rem !important;
+      }
+      header p { color: #555 !important; }
+      .search-card, #preview, #debug,
+      .btn-print, .btn-blue-sm, .btn-red-sm,
+      .btn-average, .btn-green, .btn-red-sm,
+      .modal-backdrop, footer,
+      .table-header > div,
+      #stats-bar { display: none !important; }
+      .glass {
+        background: #fff !important;
+        border: none !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+      }
+      .table-section { padding: 0 !important; margin: 0 !important; }
+      .table-scroll-wrap { overflow: visible !important; }
+      table { min-width: unset !important; width: 100% !important; }
+      thead th {
+        background: #1a1a2e !important;
+        color: #fff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        padding: 8px !important;
+        font-size: 0.7rem !important;
+        border-bottom: 2px solid #333 !important;
+      }
+      td { padding: 7px 8px !important; font-size: 0.78rem !important; color: #000 !important; }
+      tbody tr { border-bottom: 1px solid #ddd !important; background: none !important; }
+      tbody tr:nth-child(odd) {
+        background: #f9f9f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .score-pill {
+        background: none !important;
+        border: none !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+      }
+      .score-gold   { color: #b8860b !important; }
+      .score-silver { color: #555 !important; }
+      .score-bronze { color: #8B4513 !important; }
+      .gold-text, .silver-text, .bronze-text, .rating-val { color: #000 !important; }
+      .rating-muted { color: #999 !important; }
+      .title-badge {
+        background: #f0c040 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: #000 !important;
+      }
+      .fide-link { color: #000 !important; text-decoration: none !important; }
+      .col-hide-mobile { display: table-cell !important; }
+      .sex-male   { color: #1a5fb4 !important; }
+      .sex-female { color: #a0197f !important; }
+      .table-title { color: #000 !important; font-size: 1rem !important; }
+      .player-count { display: none !important; }
+    }
 </style>
 </head>
 <body>
@@ -627,6 +713,7 @@
     <span class="table-title">🏆 Live Rankings</span>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="player-count" id="count">0 Players</span>
+      <button class="btn btn-print"   onclick="printRankings()">🖨️ Print / PDF</button>
       <button class="btn btn-blue-sm" onclick="exportPlayersToExcel()">Download Excel</button>
       <button class="btn btn-red-sm" onclick="removeAllPlayers()">Remove All Players</button>
     </div>
@@ -653,6 +740,15 @@
 </footer>
 
 <script>
+
+/* ── Print / PDF ── */
+function printRankings() {
+  if (players.length === 0) {
+    showToast("لا يوجد لاعبون للطباعة", "warning");
+    return;
+  }
+  window.print();
+}
 
 /* ── Toast ── */
 let _toastTimer = null;
@@ -945,6 +1041,12 @@ function render() {
         </a>
         <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">${p.federation ?? ''}</div>
       </td>
+      <td>${(()=>{
+        const s = String(p.sex||'').trim().toUpperCase();
+        if(s==='M'||s==='MALE')   return '<span class="sex-male">M</span>';
+        if(s==='F'||s==='FEMALE') return '<span class="sex-female">F</span>';
+        return '<span class="sex-unknown">—</span>';
+      })()}</td>
       <td>${rating(p.classical)}</td>
       <td>${rating(p.rapid)}</td>
       <td>${rating(p.blitz)}</td>
@@ -963,6 +1065,7 @@ function render() {
     <thead>
       <tr>
         <th>#</th><th style="text-align:left">Player</th>
+        <th>Sex</th>
         <th>Classical</th><th>Rapid</th><th>Blitz</th>
         <th class="col-hide-mobile">African</th><th class="col-hide-mobile">National</th>
         <th>Average</th><th>Bonus</th><th>Score</th>
